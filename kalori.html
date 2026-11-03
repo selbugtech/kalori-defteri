@@ -259,6 +259,46 @@ table.t tr:last-child td{border-bottom:0}
   .modes button{flex:1;padding:7px 4px;font-size:13.5px}
   .tabs button{padding:7px 12px}
 }
+/* telefon: alt sekme çubuğu, alt sekmeler, kısa üst şerit, kapanan öğünler */
+.pgrid2{margin-top:18px}
+.subnav,.herotoggle,.mchev{display:none}
+@media (max-width:720px){
+  .wrap{padding-block:12px calc(84px + env(safe-area-inset-bottom,0px))}
+  .top{margin-bottom:12px;gap:8px}
+  .brand h1{font-size:21px}
+  .datebar{flex:1;justify-content:flex-end}
+  .datebar .d{font-size:14px}
+  #mainTabs{position:fixed;left:0;right:0;bottom:0;z-index:12;border-radius:0;gap:0;padding:6px max(6px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(6px,env(safe-area-inset-left,0px));background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -2px 12px rgba(0,0,0,.06)}
+  #mainTabs button{flex:1;padding:11px 4px;border-radius:12px;font-size:14px}
+  #mainTabs button[aria-selected="true"]{background:var(--accent-soft);color:var(--accent);box-shadow:none}
+  .subnav{display:flex;gap:4px;position:sticky;top:0;z-index:5;background:var(--sunk);padding:4px;border-radius:999px;margin:0 0 12px;box-shadow:0 0 0 6px var(--bg)}
+  .subnav button{flex:1;border:0;background:transparent;padding:8px 4px;border-radius:999px;font-weight:600;color:var(--muted);font-size:13.5px}
+  .subnav button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+  .subhide{display:none!important}
+  .grid,.stack,.pgrid{gap:12px}
+  .pgrid2{margin-top:0}
+  .panel{padding:14px 16px}
+  .wkstrip{margin-bottom:12px}
+  .hero{grid-template-columns:92px minmax(0,1fr);justify-items:stretch;align-items:center;gap:14px;padding:12px 14px;margin-bottom:12px;border-radius:14px}
+  .ring{width:92px;height:92px}
+  .ring .big{font-size:22px}
+  .ring .c .lbl{font-size:9.5px;letter-spacing:.04em}
+  .ring .c .muted{font-size:11px!important}
+  .balance{grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px}
+  .bal{padding:2px 0}
+  .bal .lbl{font-size:10.5px}
+  .bal .v{font-size:18px}
+  .bal .v small{font-size:11px}
+  .hero:not(.open) .eq,.hero:not(.open) .ex{display:none}
+  .herotoggle{display:block;grid-column:1/-1;order:10;justify-self:start;margin-top:4px;padding:3px 10px;font-size:12.5px}
+  .meal+.meal{margin-top:6px;padding-top:6px}
+  .mtg{flex:1;min-width:0;cursor:pointer;padding:6px 0}
+  .mchev{display:inline-block;width:14px;color:var(--muted);transition:transform .15s}
+  .meal.open .mchev{transform:rotate(90deg)}
+  .meal:not(.open) .items{display:none}
+  .rest{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+}
+.mhead h3 .cnt{font-family:var(--f-body);font-size:12px;font-weight:600;color:var(--muted);background:var(--sunk);border-radius:999px;padding:1px 7px;margin-left:6px;vertical-align:2px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 .ring circle.prog{transition:stroke-dashoffset .5s ease}
 </style>
@@ -266,7 +306,7 @@ table.t tr:last-child td{border-bottom:0}
 <div class="wrap">
   <header class="top">
     <div class="brand"><h1>Kalori Defteri</h1></div>
-    <div class="tabs" role="tablist">
+    <div class="tabs" id="mainTabs" role="tablist">
       <button role="tab" id="tab-gun" aria-selected="true">Günlük</button>
       <button role="tab" id="tab-spor" aria-selected="false">Spor</button>
       <button role="tab" id="tab-rapor" aria-selected="false">Rapor</button>
@@ -286,9 +326,10 @@ table.t tr:last-child td{border-bottom:0}
 
   <!-- GÜNLÜK -->
   <section id="view-gun">
-    <div class="hero">
+    <div class="hero" id="hero">
       <div class="ring" id="ring"></div>
       <div class="balance">
+        <button class="btn sm ghost herotoggle" id="heroMore" aria-expanded="false">Detay</button>
         <div class="bal"><div class="lbl">Hedef</div><div class="v num" id="bTarget"></div></div>
         <div class="bal"><div class="lbl">Alınan</div><div class="v num" id="bEaten"></div></div>
         <div class="bal"><div class="lbl">Yakılan</div><div class="v num" id="bBurn"></div></div>
@@ -301,10 +342,11 @@ table.t tr:last-child td{border-bottom:0}
         </div>
       </div>
     </div>
+    <div class="subnav" data-v="gun"></div>
 
     <div class="grid">
       <div class="stack">
-        <div class="panel">
+        <div class="panel" data-sec="mac">
           <h2>Makrolar</h2>
           <div class="mac" id="macros"></div>
           <div style="margin-top:16px">
@@ -313,51 +355,54 @@ table.t tr:last-child td{border-bottom:0}
             <div class="legend" id="splitLeg"></div>
           </div>
         </div>
-        <div class="panel" id="water"></div>
-        <div class="panel">
+        <div class="panel" id="water" data-sec="water"></div>
+        <div class="panel" data-sec="mac">
           <h2>Bugünün değerlendirmesi</h2>
           <ul class="notes" id="notes"></ul>
         </div>
       </div>
-      <div class="panel" id="meals"></div>
+      <div class="panel" id="meals" data-sec="meals"></div>
     </div>
   </section>
 
   <!-- SPOR -->
   <section id="view-spor" hidden>
-    <div class="wkstrip" id="wkStrip"></div>
+    <div class="subnav" data-v="spor"></div>
+    <div class="wkstrip" id="wkStrip" data-sec="week"></div>
     <div class="grid sgrid">
       <div class="stack">
-        <div class="panel">
+        <div class="panel" data-sec="wo">
           <div class="mhead"><h2 style="margin:0">Antrenman</h2><span class="mtot num" id="woTot"></span></div>
           <div class="foot" id="woActs" style="justify-content:flex-start;margin-top:8px"></div>
           <ul class="items wolist" id="woList"></ul>
         </div>
-        <div class="panel" id="woAdd"></div>
+        <div class="panel" id="woAdd" data-sec="wo"></div>
       </div>
       <div class="stack">
-        <div class="panel" id="progress"></div>
-        <div class="panel"><h2>Haftalık özet</h2><div class="tblwrap" id="weekly"></div></div>
+        <div class="panel" id="progress" data-sec="prog"></div>
+        <div class="panel" data-sec="week"><h2>Haftalık özet</h2><div class="tblwrap" id="weekly"></div></div>
       </div>
     </div>
   </section>
 
   <!-- RAPOR -->
   <section id="view-rapor" hidden>
-    <div class="wkstrip" id="rStrip"></div>
+    <div class="subnav" data-v="rapor"></div>
+    <div class="wkstrip" id="rStrip" data-sec="sum"></div>
     <div class="grid sgrid">
       <div class="stack">
-        <div class="panel" id="rChart"></div>
-        <div class="panel"><h2>Haftanın özeti</h2><ul class="notes" id="rNotes"></ul></div>
+        <div class="panel" id="rChart" data-sec="days"></div>
+        <div class="panel" data-sec="sum"><h2>Haftanın özeti</h2><ul class="notes" id="rNotes"></ul></div>
       </div>
-      <div class="panel"><h2>Gün gün</h2><div class="tblwrap" id="rTable"></div></div>
+      <div class="panel" data-sec="days"><h2>Gün gün</h2><div class="tblwrap" id="rTable"></div></div>
     </div>
   </section>
 
   <!-- PROFİL -->
   <section id="view-profil" hidden>
+    <div class="subnav" data-v="profil"></div>
     <div class="pgrid">
-      <div class="panel">
+      <div class="panel" data-sec="info">
         <h2>Bilgilerin</h2>
         <div class="form">
           <div class="fld full"><label>Cinsiyet</label>
@@ -386,11 +431,11 @@ table.t tr:last-child td{border-bottom:0}
             </select></div>
         </div>
       </div>
-      <div class="panel res" id="profileRes"></div>
+      <div class="panel res" id="profileRes" data-sec="res"></div>
     </div>
-    <div class="pgrid" style="margin-top:18px">
-      <div class="panel" id="wChart"></div>
-      <div class="panel">
+    <div class="pgrid pgrid2">
+      <div class="panel" id="wChart" data-sec="chart"></div>
+      <div class="panel" data-sec="data">
         <h2>Veriler</h2>
         <p class="muted" style="margin:0 0 12px;font-size:14px">Her şey yalnızca bu tarayıcıda saklanır. Yedek almak ya da başka cihaza taşımak için dosyaya aktar.</p>
         <div class="foot" style="justify-content:flex-start">
@@ -755,7 +800,7 @@ function renderDay(){
   const over=T.k>target;
   $("#ring").innerHTML=`<svg viewBox="0 0 176 176" aria-hidden="true"><circle cx="88" cy="88" r="${R}" fill="none" stroke="var(--sunk)" stroke-width="14"/>
     <circle class="prog" cx="88" cy="88" r="${R}" fill="none" stroke="${over?"var(--bad)":"var(--accent)"}" stroke-width="14" stroke-linecap="round" stroke-dasharray="${L}" stroke-dashoffset="${L*(1-Math.min(pct,1))}"/></svg>
-    <div class="c"><div class="lbl">${over?"Hedefi aştın":"Kalan"}</div><div class="big num">${fmt(Math.abs(remaining))}</div><div class="muted" style="font-size:13px">kcal</div></div>`;
+    <div class="c"><div class="lbl">${over?"Fazla":"Kalan"}</div><div class="big num">${fmt(Math.abs(remaining))}</div><div class="muted" style="font-size:13px">kcal</div></div>`;
   $("#exAuto").innerHTML=D.wo.length?`Spor sekmesinden <b>${fmt(auto)} kcal</b> (${D.wo.length} hareket)`:`Spor sekmesinde antrenman ekleyince yakılan kalori buraya gelir.`;
   if(document.activeElement!==$("#exKcal"))$("#exKcal").value=D.ex||""; $("#dayWeight").value=D.w||""; $("#dayWeight").placeholder=fmt(C.w,1);
 
@@ -809,7 +854,7 @@ function renderDay(){
   // öğünler
   $("#meals").innerHTML=`<h2>Öğünler</h2>`+MEALS.map(([m,n])=>{
     const list=D.meals[m]; const mt=list.reduce((a,e)=>a+e.k,0);
-    return `<div class="meal"><div class="mhead"><div><h3>${n}</h3><div class="mtot num">${list.length?`${fmt(mt)} kcal · P ${fmt(list.reduce((a,e)=>a+e.p,0))} · K ${fmt(list.reduce((a,e)=>a+e.c,0))} · Y ${fmt(list.reduce((a,e)=>a+e.f,0))} g`:"—"}</div></div>
+    return `<div class="meal${OPENM.has(m)?" open":""}"><div class="mhead"><div class="mtg" data-tg="${m}" role="button" aria-expanded="${OPENM.has(m)}"><h3><span class="mchev" aria-hidden="true">›</span>${n}${list.length?`<span class="cnt">${list.length}</span>`:""}</h3><div class="mtot num">${list.length?`${fmt(mt)} kcal · P ${fmt(list.reduce((a,e)=>a+e.p,0))} · K ${fmt(list.reduce((a,e)=>a+e.c,0))} · Y ${fmt(list.reduce((a,e)=>a+e.f,0))} g`:"—"}</div></div>
       <button class="btn sm" data-add="${m}">+ Ekle</button></div>
       <ul class="items">${list.length?list.map((e,i)=>`<li class="item"><div class="n">${esc(e.name)}${e.sample?'<span class="tag">örnek</span>':""}${e.est?'<span class="tag">tahmini</span>':""}<div class="por">${esc(e.por)}</div></div>
         <div class="k">${fmt(e.k)} kcal</div><button class="del" data-del="${m}:${i}" aria-label="Sil">×</button>
@@ -870,14 +915,27 @@ function showTab(t){for(const x of ["gun","spor","rapor","profil"]){$("#tab-"+x)
   $(".datebar").style.visibility=t==="profil"?"hidden":"visible";
   if(t==="rapor"){const s=n=>{let d=addDays(cur,n);if(d>TODAY)d=TODAY;if(d!==cur){cur=d;render()}};$("#prev").onclick=()=>s(-7);$("#next").onclick=()=>s(7)}
   else{$("#prev").onclick=()=>shift(-1);$("#next").onclick=()=>shift(1)}
-  renderDate();renderReport()}
+  renderDate();renderReport();scrollTo(0,0)}
+/* telefonda her sekmenin bölümleri ayrı alt sekmelerde (masaüstünde .subnav gizli, hepsi görünür) */
+const SUBS={gun:[["meals","Öğünler"],["mac","Makrolar"],["water","Su"]],spor:[["wo","Antrenman"],["prog","İlerleme"],["week","Haftalık"]],
+  rapor:[["sum","Özet"],["days","Günler"]],profil:[["info","Bilgiler"],["res","Sonuçlar"],["chart","Grafik"],["data","Veriler"]]};
+const SUB={gun:"meals",spor:"wo",rapor:"sum",profil:"info"};
+function drawSubs(){for(const v in SUBS){
+  $(`.subnav[data-v="${v}"]`).innerHTML=SUBS[v].map(([k,l])=>`<button data-s="${k}" aria-pressed="${SUB[v]===k}">${l}</button>`).join("");
+  document.querySelectorAll(`#view-${v} [data-sec]`).forEach(el=>el.classList.toggle("subhide",el.dataset.sec!==SUB[v]))}}
+document.querySelectorAll(".subnav").forEach(n=>n.onclick=e=>{const b=e.target.closest("[data-s]");if(!b)return;
+  SUB[n.dataset.v]=b.dataset.s;drawSubs();const top=n.getBoundingClientRect().top+scrollY-6;if(scrollY>top)scrollTo(0,top)});
+drawSubs();
+$("#heroMore").onclick=e=>{const o=$("#hero").classList.toggle("open");e.target.textContent=o?"Kapat":"Detay";e.target.setAttribute("aria-expanded",o)};
 $("#tab-gun").onclick=()=>showTab("gun");$("#tab-spor").onclick=()=>showTab("spor");$("#tab-rapor").onclick=()=>showTab("rapor");$("#tab-profil").onclick=()=>showTab("profil");
 const shift=n=>{const d=new Date(cur+"T12:00:00");d.setDate(d.getDate()+n);const s=ymd(d);if(s<=TODAY){cur=s;if(X.editIx!=null){X.editIx=null;X.ex=null}render()}};
 $("#prev").onclick=()=>shift(-1);$("#next").onclick=()=>shift(1);
 $("#clearSample").onclick=()=>{for(const d in S.days){for(const [m] of MEALS)S.days[d].meals[m]=S.days[d].meals[m].filter(e=>!e.sample);if(S.days[d].wo)S.days[d].wo=S.days[d].wo.filter(e=>!e.sample);if(S.days[d].ws){S.days[d].w=null;delete S.days[d].ws}}for(const d in S.meas||{})if(S.meas[d].sample)delete S.meas[d];S.sample=false;render()};
 $("#exKcal").oninput=e=>{day().ex=Math.max(0,+e.target.value||0);render()};
 $("#dayWeight").onchange=e=>{const v=+e.target.value;day().w=v>=30?v:null;delete day().ws;if(v>=30&&cur===TODAY)S.profile.weight=v;render()};
-$("#meals").onclick=e=>{const a=e.target.closest("[data-add]"),d=e.target.closest("[data-del]");
+const OPENM=new Set();
+$("#meals").onclick=e=>{const a=e.target.closest("[data-add]"),d=e.target.closest("[data-del]"),tg=e.target.closest("[data-tg]");
+  if(tg){const m=tg.dataset.tg;OPENM.has(m)?OPENM.delete(m):OPENM.add(m);tg.closest(".meal").classList.toggle("open",OPENM.has(m));tg.setAttribute("aria-expanded",OPENM.has(m))}
   if(a)openSheet(a.dataset.add);
   if(d){const [m,i]=d.dataset.del.split(":");day().meals[m].splice(+i,1);render()}};
 const bindP=(id,key)=>$(id).addEventListener("input",e=>{S.profile[key]=e.target.value;S.sample=false;renderDay();renderProfile();save()});
@@ -891,7 +949,7 @@ $("#sexSeg").onclick=e=>{const b=e.target.closest("button");if(b){S.profile.sex=
 /* ---------- öğün ekleme paneli ---------- */
 let sh={own:{name:"",k:"",p:"",c:"",f:"",fib:"",pl:"",g:""},meal:"kahvalti",mode:"list",q:"",cat:"",food:null,por:"",amt:1,ing:[],serv:4,eat:1,rname:"",gt:0,gp:4,gamt:1,gname:""};
 function openSheet(meal){sh.meal=meal;sh.food=null;$("#scrim").hidden=false;$("#shTitle").textContent=MEALS.find(m=>m[0]===meal)[1]+" öğününe ekle";drawSheet();setTimeout(()=>{const s=$("#q");s&&s.focus()},30)}
-function closeSheet(){$("#scrim").hidden=true}
+function closeSheet(){$("#scrim").hidden=true;OPENM.add(sh.meal)}
 $("#shClose").onclick=closeSheet;$("#scrim").onclick=e=>{if(e.target.id==="scrim")closeSheet()};
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#scrim").hidden)closeSheet()});
 function setMode(m){sh.mode=m;document.querySelectorAll("#modeTabs button").forEach(x=>x.setAttribute("aria-selected",x.dataset.m===m));drawSheet()}

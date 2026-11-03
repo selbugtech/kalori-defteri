@@ -20,6 +20,8 @@ Tek dosyalık web uygulaması: `kalori.html` (HTML + CSS + vanilla JS, kütüpha
 - **Veriler:** Profil sekmesinde JSON dışa/içe aktarma (içe aktarma mevcut verinin yerini alır).
 - **PWA:** `manifest.json`, `sw.js` (ağ öncelikli, çevrimdışıysa önbellek), `icons/`. Service worker yalnızca http(s) üzerinde kaydolur. Yayın: https://selbugtech.github.io/kalori-defteri/
 
+- **Telefon düzeni (≤720 px):** ana sekmeler altta sabit; her sekmenin panelleri `data-sec` ile işaretli ve `SUBS` / `SUB` alt sekmeleriyle tek tek gösterilir (`.subhide`); kalori şeridi küçük, "Detay" ile açılır; öğünler başlığa dokununca açılır (`OPENM`). Masaüstünde hepsi görünür.
+
 ## Veri
 - `localStorage` anahtarı `kalori-defteri-v1`. Yapı:
   `{v:2, sample, profile:{sex,age,height,weight,neck,waist,hip,act,goal}, days:{"YYYY-MM-DD":{ex, w, wo:[...], meals:{kahvalti,ogle,aksam,ara}}}}`
