@@ -214,6 +214,14 @@ table.t td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:to
 table.t td.n{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
 table.t th.n{text-align:right}
 table.t tr:last-child td{border-bottom:0}
+.toast{position:fixed;left:50%;transform:translateX(-50%);top:calc(14px + env(safe-area-inset-top,0px));z-index:30;max-width:calc(100vw - 32px);background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:10px;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.2)}
+.macts{display:flex;gap:6px;align-items:center}
+.items .mfoot{padding:4px 6px 0}
+.combos{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.combos li{display:grid;grid-template-columns:minmax(0,1fr) 34px;gap:4px;align-items:center;border:1px solid var(--accent);background:var(--accent-soft);border-radius:10px}
+.combos .cadd{border:0;background:transparent;text-align:left;padding:9px 12px;display:flex;justify-content:space-between;gap:10px;font-weight:600}
+.combos .meta{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-weight:400;white-space:nowrap}
+.combos .del{border:0;background:transparent;color:var(--muted);font-size:18px;height:34px;border-radius:8px}
 .wolist .acts{grid-row:1/4;grid-column:3;display:flex;gap:2px;align-self:start}
 .wolist .acts .del{grid-row:auto;grid-column:auto;font-size:16px}
 .rest{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:15;width:min(360px,calc(100vw - 32px));background:var(--ink);color:var(--bg);border-radius:16px;padding:12px 14px;display:grid;gap:8px;box-shadow:0 8px 28px rgba(0,0,0,.25)}
@@ -463,6 +471,7 @@ table.t tr:last-child td{border-bottom:0}
   </div>
 </div>
 
+<div class="toast" id="toast" hidden role="status" aria-live="polite"></div>
 <div class="rest" id="rest" hidden role="timer" aria-live="polite">
   <div class="rtop"><span class="lbl" style="color:inherit;opacity:.7">Dinlenme</span><span class="num" id="restTime">1:30</span>
     <button data-ra="-15" aria-label="15 saniye azalt">−15</button><button data-ra="15" aria-label="15 saniye ekle">+15</button><button id="restX" aria-label="Sayacı kapat">×</button></div>
@@ -855,14 +864,15 @@ function renderDay(){
   }
   $("#notes").innerHTML=N.map(([c,t])=>`<li class="${c}"><span>${t}</span></li>`).join("");
 
-  // öğünler
+  // öğünler (boş öğün için önceki dolu günü bul)
+  const src={};for(const [m] of MEALS)src[m]=prevMeal(m);
   $("#meals").innerHTML=`<h2>Öğünler</h2>`+MEALS.map(([m,n])=>{
     const list=D.meals[m]; const mt=list.reduce((a,e)=>a+e.k,0);
     return `<div class="meal${OPENM.has(m)?" open":""}"><div class="mhead"><div class="mtg" data-tg="${m}" role="button" aria-expanded="${OPENM.has(m)}"><h3><span class="mchev" aria-hidden="true">›</span>${n}${list.length?`<span class="cnt">${list.length}</span>`:""}</h3><div class="mtot num">${list.length?`${fmt(mt)} kcal · P ${fmt(list.reduce((a,e)=>a+e.p,0))} · K ${fmt(list.reduce((a,e)=>a+e.c,0))} · Y ${fmt(list.reduce((a,e)=>a+e.f,0))} g`:"—"}</div></div>
-      <button class="btn sm" data-add="${m}">+ Ekle</button></div>
+      <div class="macts">${!list.length&&src[m]?`<button class="btn sm ghost" data-copy="${m}" title="${esc(shortDate(src[m].d))} tarihli ${n.toLowerCase()} öğününü kopyala">↺ ${src[m].d===addDays(cur,-1)?"Dünkü":shortDate(src[m].d)}</button>`:""}<button class="btn sm" data-add="${m}">+ Ekle</button></div></div>
       <ul class="items">${list.length?list.map((e,i)=>`<li class="item"><div class="n">${esc(e.name)}${e.sample?'<span class="tag">örnek</span>':""}${e.est?'<span class="tag">tahmini</span>':""}<div class="por">${esc(e.por)}</div></div>
         <div class="k">${fmt(e.k)} kcal</div><button class="del" data-del="${m}:${i}" aria-label="Sil">×</button>
-        <div class="m"><span style="color:var(--pro)">P ${fmt(e.p,1)}</span><span style="color:var(--carb)">K ${fmt(e.c,1)}</span><span style="color:var(--fat)">Y ${fmt(e.f,1)}</span><span style="color:var(--fib)">Lif ${fmt(e.fib,1)}</span></div></li>`).join(""):`<li class="empty">Henüz bir şey yok.</li>`}</ul></div>`}).join("");
+        <div class="m"><span style="color:var(--pro)">P ${fmt(e.p,1)}</span><span style="color:var(--carb)">K ${fmt(e.c,1)}</span><span style="color:var(--fat)">Y ${fmt(e.f,1)}</span><span style="color:var(--fib)">Lif ${fmt(e.fib,1)}</span></div></li>`).join("")+`<li class="mfoot"><button class="btn sm ghost" data-save="${m}">☆ Hazır öğün olarak kaydet</button></li>`:`<li class="empty">Henüz bir şey yok.${src[m]?` <b>↺</b> ile ${src[m].d===addDays(cur,-1)?"dünkü":shortDate(src[m].d)+" tarihli"} ${n.toLowerCase()} öğününü kopyalayabilirsin.`:""}</li>`}</ul></div>`}).join("");
   const anySample=Object.values(S.days).some(d=>d.ws||(d.wo||[]).some(w=>w.sample)||MEALS.some(([m])=>d.meals[m].some(e=>e.sample)));
   $("#sampleBanner").hidden=!anySample&&!S.sample;
 }
@@ -938,6 +948,18 @@ $("#clearSample").onclick=()=>{for(const d in S.days){for(const [m] of MEALS)S.d
 $("#exKcal").oninput=e=>{day().ex=Math.max(0,+e.target.value||0);render()};
 $("#dayWeight").onchange=e=>{const v=+e.target.value;day().w=v>=30?v:null;delete day().ws;if(v>=30&&cur===TODAY)S.profile.weight=v;render()};
 const OPENM=new Set();
+/* cur'dan önceki, bu öğünü dolu (örnek olmayan) en yakın gün */
+function prevMeal(m){for(const d of Object.keys(S.days).filter(d=>d<cur).sort().reverse()){const l=((S.days[d].meals||{})[m]||[]).filter(e=>!e.sample);if(l.length)return {d,list:l}}return null}
+const copyEntries=l=>l.map(({sample,...e})=>({...e}));
+function toast(msg){const t=$("#toast");t.textContent=msg;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,2600)}
+$("#meals").addEventListener("click",e=>{const c=e.target.closest("[data-copy]"),s=e.target.closest("[data-save]");
+  if(c){const m=c.dataset.copy,p=prevMeal(m);if(!p)return;day().meals[m].push(...copyEntries(p.list));OPENM.add(m);render();
+    toast(`${p.list.length} kalem kopyalandı (${shortDate(p.d)}).`)}
+  if(s){const m=s.dataset.save,n=MEALS.find(x=>x[0]===m)[1],list=day().meals[m];
+    const def={kahvalti:"Her günkü kahvaltım",ogle:"Her günkü öğle yemeğim",aksam:"Her günkü akşam yemeğim",ara:"Ara öğünüm"}[m]||n;
+    const name=(prompt("Hazır öğünün adı:",def)||"").trim();if(!name)return;
+    S.combos=S.combos||[];S.combos.unshift({id:"m"+Date.now(),name,items:copyEntries(list)});save();
+    toast(`"${name}" kaydedildi. + Ekle ekranının en üstünde çıkacak.`)}});
 $("#meals").onclick=e=>{const a=e.target.closest("[data-add]"),d=e.target.closest("[data-del]"),tg=e.target.closest("[data-tg]");
   if(tg){const m=tg.dataset.tg;OPENM.has(m)?OPENM.delete(m):OPENM.add(m);tg.closest(".meal").classList.toggle("open",OPENM.has(m));tg.setAttribute("aria-expanded",OPENM.has(m))}
   if(a)openSheet(a.dataset.add);
@@ -986,8 +1008,11 @@ function drawSheet(){
         <div class="foot">${f.own?`<button class="btn ghost" id="delFood" style="margin-right:auto;color:var(--bad)">Listeden sil</button>`:""}<button class="btn primary" id="addBtn">${esc(f.name)} ekle</button></div>`}
     const R=!q&&!sh.cat?recentFoods():null;
     const rc=(list,lbl)=>list.length?`<div class="fld"><span class="lbl">${lbl}</span><div class="chips">${list.map(r=>`<button class="chip" data-r="${esc(r.e.name)}" title="${esc(r.e.por)}">${esc(r.e.name)}<span class="muted"> · ${fmt(r.e.k)}</span></button>`).join("")}</div></div>`:"";
+    const CB=S.combos||[];
+    const cbs=R?(CB.length?`<div class="fld"><span class="lbl">Hazır öğünlerin · tek dokunuşla hepsi eklenir</span><ul class="combos">${CB.map(c=>`<li><button class="cadd" data-cb="${c.id}"><span>${esc(c.name)}</span><span class="meta">${c.items.length} kalem · ${fmt(c.items.reduce((a,e)=>a+e.k,0))} kcal</span></button><button class="del" data-cbx="${c.id}" aria-label="${esc(c.name)} hazır öğününü sil">×</button></li>`).join("")}</ul></div>`
+      :`<div class="muted" style="font-size:12.5px">İpucu: dolu bir öğünün altındaki <b>☆ Hazır öğün olarak kaydet</b> ile her gün yediğin menüyü kaydedersen burada tek dokunuşla eklenir.</div>`):"";
     B.innerHTML=`<input class="inp" id="q" type="search" placeholder="Ara: pilav, yumurta, lahmacun…" value="${esc(sh.q)}" autocomplete="off">
-      ${R?rc(R.last,"Son yediklerin")+rc(R.freq,"En sık yediklerin"):""}
+      ${cbs}${R?rc(R.last,"Son yediklerin")+rc(R.freq,"En sık yediklerin"):""}
       <div class="chips"><button class="chip" data-cat="" aria-pressed="${!sh.cat}">Tümü</button>${CATS.map(c=>`<button class="chip" data-cat="${esc(c)}" aria-pressed="${sh.cat===c}">${esc(c)}</button>`).join("")}</div>
       <ul class="results">${res.length?res.map(f=>`<li><button data-f="${f.id}" aria-pressed="${sh.food&&sh.food.id===f.id}"><span>${esc(f.name)}</span><span class="meta">${f.k} kcal/100 g · ${esc(f.por[0][0])} ${f.por[0][1]} g</span></button></li>`).join(""):`<li class="empty">Bulunamadı. <b>Tahmini</b> sekmesinden yemek türüne göre ekleyebilirsin.</li>`}</ul>${det}`;
     const qi=$("#q");qi.oninput=e=>{sh.q=e.target.value;const pos=e.target.selectionStart;drawSheet();const n=$("#q");n.focus();n.setSelectionRange(pos,pos)};
@@ -996,6 +1021,10 @@ function drawSheet(){
     B.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{const r=R.map[b.dataset.r],f=FOODS.find(x=>x.name===r.e.name);
       if(f){sh.food=f;const ok=r.e.pl&&(r.e.pl==="g"||f.por.some(p=>p[0]===r.e.pl));sh.por=ok?r.e.pl:f.por[0][0];sh.amt=ok?r.e.amt:1;drawSheet();$("#amt").focus()}
       else{const {sample,...e}=r.e;day().meals[sh.meal].push({...e});closeSheet();render()}});
+    B.querySelectorAll("[data-cb]").forEach(b=>b.onclick=()=>{const c=CB.find(x=>x.id===b.dataset.cb);if(!c)return;
+      day().meals[sh.meal].push(...copyEntries(c.items));closeSheet();render();toast(`"${c.name}" eklendi: ${c.items.length} kalem.`)});
+    B.querySelectorAll("[data-cbx]").forEach(b=>b.onclick=()=>{const c=CB.find(x=>x.id===b.dataset.cbx);if(!c||!confirm(`"${c.name}" hazır öğünü silinsin mi?`))return;
+      S.combos=CB.filter(x=>x!==c);save();drawSheet()});
     const dfb=$("#delFood");if(dfb)dfb.onclick=()=>{if(!confirm(`"${sh.food.name}" listeden silinsin mi? Daha önce eklediğin öğünler etkilenmez.`))return;
       S.foods=(S.foods||[]).filter(x=>x.id!==sh.food.id);sh.food=null;rebuildFoods();save();drawSheet()};
     if(sh.food){$("#amt").oninput=e=>{sh.amt=+e.target.value||0;upd()};$("#por").onchange=e=>{sh.por=e.target.value;if(sh.por==="g")sh.amt=100;drawSheet()};$("#mSel").onchange=e=>sh.meal=e.target.value;
