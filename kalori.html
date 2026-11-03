@@ -1,0 +1,1238 @@
+<title>Kalori Defteri</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: sakin bir "defter" — üstte günün kalori dengesi, solda analiz, sağda öğünler; profil ayrı sekmede */
+:root{
+  --bg:#F3F5EF; --surface:#FFFFFF; --sunk:#E9EDE4; --ink:#17201B; --muted:#5B685F; --line:#D8DED2;
+  --accent:#2C5B4D; --accent-ink:#FFFFFF; --accent-soft:#DCE9E2;
+  --pro:#BF5134; --carb:#C8901F; --fat:#3F6F9E; --fib:#5E8732;
+  --good:#2C7A4B; --warn:#B9740A; --bad:#B0363A;
+  --f-display:"Bricolage Grotesque", "Figtree", system-ui, sans-serif;
+  --f-body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r:12px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111613; --surface:#1A201C; --sunk:#151A17; --ink:#E6EBE4; --muted:#9AA69D; --line:#2B332E;
+  --accent:#8EC5AF; --accent-ink:#0F1A15; --accent-soft:#22352D;
+  --pro:#E88A6D; --carb:#E3BA62; --fat:#86AEDA; --fib:#A0C66D;
+  --good:#6CC28E; --warn:#E4A94A; --bad:#EE7C7E; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#111613; --surface:#1A201C; --sunk:#151A17; --ink:#E6EBE4; --muted:#9AA69D; --line:#2B332E;
+  --accent:#8EC5AF; --accent-ink:#0F1A15; --accent-soft:#22352D;
+  --pro:#E88A6D; --carb:#E3BA62; --fat:#86AEDA; --fib:#A0C66D;
+  --good:#6CC28E; --warn:#E4A94A; --bad:#EE7C7E; color-scheme:dark;}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 60px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;letter-spacing:-.01em}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.lbl{font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* header */
+.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+.brand{display:flex;align-items:baseline;gap:10px}
+.brand h1{font-size:26px;font-weight:700}
+.tabs{display:flex;gap:4px;background:var(--sunk);padding:4px;border-radius:999px}
+.tabs button{border:0;background:transparent;padding:7px 16px;border-radius:999px;font-weight:600;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.datebar{display:flex;align-items:center;gap:6px}
+.iconbtn{border:1px solid var(--line);background:var(--surface);width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:16px;line-height:1}
+.datebar .d{font-weight:600;min-width:150px;text-align:center}
+
+.banner{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:var(--accent-soft);border-radius:var(--r);padding:10px 14px;margin-bottom:16px;font-size:14px}
+.btn{border:1px solid var(--line);background:var(--surface);padding:8px 14px;border-radius:9px;font-weight:600}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.ghost{background:transparent}
+.btn.sm{padding:5px 10px;font-size:13px}
+
+/* hero balance */
+.hero{display:grid;grid-template-columns:auto 1fr;gap:28px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px 24px;margin-bottom:18px}
+.ring{position:relative;width:176px;height:176px}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .c{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+.ring .big{font-family:var(--f-display);font-size:38px;font-weight:700;line-height:1}
+.balance{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px 18px}
+.bal{padding:6px 0}
+.bal .v{font-family:var(--f-display);font-size:26px;font-weight:700;line-height:1.15}
+.bal .v small{font-family:var(--f-body);font-size:13px;font-weight:500;color:var(--muted);margin-left:2px}
+.eq{grid-column:1/-1;font-size:14px;color:var(--muted);border-top:1px dashed var(--line);padding-top:10px;margin-top:4px}
+.eq b{color:var(--ink)}
+.ex{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;grid-column:1/-1}
+.ex label{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--muted)}
+.ex input{width:84px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+
+.grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:18px;align-items:start}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 20px}
+.panel h2{font-size:19px;margin-bottom:12px}
+.stack{display:flex;flex-direction:column;gap:18px}
+
+/* macro bars */
+.mac{display:grid;gap:14px}
+.mrow .head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:5px}
+.mrow .name{font-weight:600;display:flex;align-items:center;gap:7px}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.track{position:relative;height:10px;background:var(--sunk);border-radius:6px;overflow:visible}
+.fill{position:absolute;left:0;top:0;bottom:0;border-radius:6px;max-width:100%}
+.over{position:absolute;top:0;bottom:0;border-radius:0 6px 6px 0;background:repeating-linear-gradient(45deg,var(--bad) 0 4px,transparent 4px 7px);opacity:.75}
+.tick{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink);opacity:.55;border-radius:1px}
+.pill{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.02em;white-space:nowrap}
+.pill.low{color:var(--warn);background:color-mix(in srgb,var(--warn) 14%,transparent)}
+.pill.ok{color:var(--good);background:color-mix(in srgb,var(--good) 14%,transparent)}
+.pill.high{color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,transparent)}
+.split{display:flex;height:12px;border-radius:6px;overflow:hidden;margin:6px 0 4px;background:var(--sunk)}
+.split span{display:block;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--muted)}
+
+.notes{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.notes li{display:grid;grid-template-columns:4px 1fr;gap:10px;font-size:14px}
+.notes li::before{content:"";border-radius:2px;background:var(--muted)}
+.notes li.low::before{background:var(--warn)} .notes li.high::before{background:var(--bad)} .notes li.ok::before{background:var(--good)}
+
+/* meals */
+.meal+.meal{border-top:1px solid var(--line);margin-top:14px;padding-top:14px}
+.mhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.mhead h3{font-size:17px}
+.mtot{font-size:13px;color:var(--muted)}
+.items{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:2px}
+.item{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:4px 12px;align-items:center;padding:8px 10px;border-radius:9px}
+.item:hover{background:var(--sunk)}
+.item .n{font-weight:600;min-width:0}
+.item .por{font-size:12.5px;color:var(--muted)}
+.item .k{font-family:var(--f-mono);font-weight:500;text-align:right}
+.item .m{grid-column:1/3;font-family:var(--f-mono);font-size:12px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap}
+.item .del{grid-row:1/3;grid-column:3;border:0;background:transparent;color:var(--muted);font-size:18px;width:30px;height:30px;border-radius:7px}
+.item .del:hover{background:var(--line);color:var(--bad)}
+.tag{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:1px 6px;border-radius:5px;background:var(--sunk);color:var(--muted);margin-left:6px;vertical-align:1px}
+.empty{font-size:13.5px;color:var(--muted);padding:8px 10px}
+
+/* profile */
+.pgrid{display:grid;grid-template-columns:minmax(0,6fr) minmax(0,5fr);gap:18px;align-items:start}
+.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.fld{display:flex;flex-direction:column;gap:5px}
+.fld.full{grid-column:1/-1}
+.fld label{font-size:13px;font-weight:600}
+.fld .hint{font-size:12px;color:var(--muted)}
+.inp{padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:var(--bg);width:100%}
+.seg{display:flex;gap:4px;background:var(--sunk);padding:3px;border-radius:10px}
+.seg button{flex:1;border:0;background:transparent;padding:7px;border-radius:8px;font-weight:600;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.res{display:grid;gap:12px}
+.bf{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.bf .big{font-family:var(--f-display);font-size:46px;font-weight:700;line-height:1}
+.scale{position:relative;height:10px;border-radius:5px;display:flex;overflow:hidden;margin-top:6px}
+.scale span{flex:1}
+.scalewrap{position:relative}
+.scalewrap .mk{position:absolute;top:-4px;width:3px;height:18px;background:var(--ink);border-radius:2px;transform:translateX(-50%)}
+.scalelbl{display:flex;font-size:11px;color:var(--muted);margin-top:4px}
+.scalelbl span{flex:1;text-align:center}
+.kv{display:grid;grid-template-columns:1fr auto;gap:6px 14px;font-size:14px}
+.kv dt{color:var(--muted)} .kv dd{margin:0;font-family:var(--f-mono);text-align:right}
+.kv .em{font-weight:700;color:var(--ink)}
+.warnbox{font-size:13.5px;padding:10px 12px;border-radius:9px;background:color-mix(in srgb,var(--warn) 12%,transparent)}
+
+/* sheet */
+.scrim{position:fixed;inset:0;background:rgba(10,14,12,.45);z-index:20;display:flex;align-items:flex-end;justify-content:center;padding-top:env(safe-area-inset-top,0px)}
+@media (min-width:720px){.scrim{align-items:center;padding:24px}}
+.sheet{background:var(--surface);width:100%;max-width:640px;max-height:min(88vh,860px);border-radius:18px 18px 0 0;display:flex;flex-direction:column;overflow:hidden}
+@media (min-width:720px){.sheet{border-radius:18px}}
+.sh-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:16px max(18px,env(safe-area-inset-right,0px)) 10px max(18px,env(safe-area-inset-left,0px))}
+.sh-head h2{font-size:20px}
+.sh-body{overflow:auto;padding:4px max(18px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px));display:grid;gap:14px}
+.modes{margin:0 18px 6px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--bg);padding:4px 10px;border-radius:999px;font-size:13px;font-weight:500}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.results{list-style:none;margin:0;padding:0;display:grid;gap:2px;max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:4px}
+.results button{width:100%;text-align:left;border:0;background:transparent;padding:8px 10px;border-radius:8px;display:flex;justify-content:space-between;gap:10px}
+.results button:hover,.results button[aria-pressed="true"]{background:var(--accent-soft)}
+.results .meta{font-family:var(--f-mono);font-size:12px;color:var(--muted);white-space:nowrap}
+.row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.preview{background:var(--sunk);border-radius:12px;padding:12px 14px;display:grid;grid-template-columns:auto 1fr;gap:4px 18px;align-items:center}
+.preview .k{font-family:var(--f-display);font-size:30px;font-weight:700;line-height:1}
+.preview .m{font-family:var(--f-mono);font-size:13px;display:flex;gap:12px;flex-wrap:wrap}
+.preview .g{grid-column:1/-1;font-size:12.5px;color:var(--muted)}
+.ing{display:grid;grid-template-columns:minmax(0,1fr) 72px 130px 30px;gap:6px;align-items:center}
+.ing .del{border:0;background:transparent;color:var(--muted);font-size:18px}
+.foot{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+
+/* spor */
+.exauto{font-size:13.5px;color:var(--muted);display:flex;align-items:center}
+.exauto b{color:var(--ink);font-family:var(--f-mono);font-weight:500;margin:0 4px}
+.sgrid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.wkstrip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;background:var(--surface);border:1px solid var(--line);border-radius:16px;margin-bottom:18px;overflow:hidden}
+.wk{padding:14px 18px;border-left:1px solid var(--line)}
+.wk:first-child{border-left:0}
+.wk .v{font-family:var(--f-display);font-size:24px;font-weight:700;line-height:1.2}
+.wk .v small{font-family:var(--f-body);font-size:12.5px;color:var(--muted);font-weight:500;margin-left:2px}
+.delta{font-size:12px;font-family:var(--f-mono)}
+.up{color:var(--good)} .down{color:var(--bad)}
+.wolist .item{grid-template-columns:minmax(0,1fr) auto auto}
+.wolist .sets{grid-column:1/3;font-family:var(--f-mono);font-size:12.5px;color:var(--ink);opacity:.85}
+.wolist .note{grid-column:1/3;font-size:12.5px;color:var(--muted);font-style:italic}
+.wolist .item .del{grid-row:1/4}
+.xtype{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--accent)}
+.setrows{display:grid;gap:6px}
+.setrow{display:grid;grid-template-columns:44px minmax(0,1fr) minmax(0,1fr) 30px;gap:8px;align-items:center}
+.setrow .sn{font-family:var(--f-mono);font-size:13px;color:var(--muted)}
+.setrow .del{border:0;background:transparent;color:var(--muted);font-size:18px}
+.last{font-size:13px;background:var(--sunk);border-radius:9px;padding:8px 11px}
+.last b{font-family:var(--f-mono);font-weight:500}
+.chart svg{width:100%;height:auto;display:block}
+.chart text{font-family:var(--f-mono);font-size:11px;fill:var(--muted)}
+.stats3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:4px 0 12px}
+.stats3 .v{font-family:var(--f-display);font-size:22px;font-weight:700}
+.tblwrap{overflow-x:auto}
+table.t{width:100%;border-collapse:collapse;font-size:13.5px}
+table.t th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.t td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+table.t td.n{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+table.t th.n{text-align:right}
+table.t tr:last-child td{border-bottom:0}
+.hbar{height:6px;border-radius:3px;background:var(--accent);opacity:.7;margin-top:4px}
+
+@media (max-width:860px){
+  .sgrid{grid-template-columns:minmax(0,1fr)}
+  .wkstrip{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .wk{border-left:0;border-top:1px solid var(--line)}
+  .wk:nth-child(-n+2){border-top:0}
+  .wk:nth-child(even){border-left:1px solid var(--line)}
+  .wk:last-child{grid-column:1/-1;border-left:0}
+  .grid,.pgrid{grid-template-columns:minmax(0,1fr)}
+  .hero{grid-template-columns:minmax(0,1fr);justify-items:center;text-align:left}
+  .balance{grid-template-columns:repeat(2,minmax(0,1fr));width:100%}
+}
+@media (max-width:480px){
+  .form{grid-template-columns:minmax(0,1fr)}
+  .row{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .ing{grid-template-columns:minmax(0,1fr) 60px;}
+  .ing select.u{grid-column:1} .ing .del{grid-column:2}
+  .datebar .d{min-width:0}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.ring circle.prog{transition:stroke-dashoffset .5s ease}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><h1>Kalori Defteri</h1></div>
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tab-gun" aria-selected="true">Günlük</button>
+      <button role="tab" id="tab-spor" aria-selected="false">Spor</button>
+      <button role="tab" id="tab-profil" aria-selected="false">Profil</button>
+    </div>
+    <div class="datebar">
+      <button class="iconbtn" id="prev" aria-label="Önceki gün">‹</button>
+      <span class="d" id="dateLbl"></span>
+      <button class="iconbtn" id="next" aria-label="Sonraki gün">›</button>
+    </div>
+  </header>
+
+  <div class="banner" id="sampleBanner" hidden>
+    <span>Gördüğün profil, öğünler ve antrenmanlar <b>örnek</b>. Profil sekmesine kendi bilgilerini gir, örnekleri temizle.</span>
+    <button class="btn sm" id="clearSample">Örnekleri temizle</button>
+  </div>
+
+  <!-- GÜNLÜK -->
+  <section id="view-gun">
+    <div class="hero">
+      <div class="ring" id="ring"></div>
+      <div class="balance">
+        <div class="bal"><div class="lbl">Hedef</div><div class="v num" id="bTarget"></div></div>
+        <div class="bal"><div class="lbl">Alınan</div><div class="v num" id="bEaten"></div></div>
+        <div class="bal"><div class="lbl">Yakılan</div><div class="v num" id="bBurn"></div></div>
+        <div class="bal"><div class="lbl" id="bDefLbl">Kalori açığı</div><div class="v num" id="bDef"></div></div>
+        <div class="eq" id="eq"></div>
+        <div class="ex">
+          <span class="exauto" id="exAuto"></span>
+          <label for="exKcal">Ek egzersiz <input id="exKcal" class="num" type="number" min="0" step="10" inputmode="numeric"> kcal</label>
+          <label for="dayWeight">Bugünkü kilo <input id="dayWeight" class="num" type="number" min="30" max="300" step="0.1" inputmode="decimal"> kg</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="stack">
+        <div class="panel">
+          <h2>Makrolar</h2>
+          <div class="mac" id="macros"></div>
+          <div style="margin-top:16px">
+            <div class="lbl">Kalorinin makrolara dağılımı</div>
+            <div class="split" id="split"></div>
+            <div class="legend" id="splitLeg"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Bugünün değerlendirmesi</h2>
+          <ul class="notes" id="notes"></ul>
+        </div>
+      </div>
+      <div class="panel" id="meals"></div>
+    </div>
+  </section>
+
+  <!-- SPOR -->
+  <section id="view-spor" hidden>
+    <div class="wkstrip" id="wkStrip"></div>
+    <div class="grid sgrid">
+      <div class="stack">
+        <div class="panel">
+          <div class="mhead"><h2 style="margin:0">Antrenman</h2><span class="mtot num" id="woTot"></span></div>
+          <ul class="items wolist" id="woList"></ul>
+        </div>
+        <div class="panel" id="woAdd"></div>
+      </div>
+      <div class="stack">
+        <div class="panel" id="progress"></div>
+        <div class="panel"><h2>Haftalık özet</h2><div class="tblwrap" id="weekly"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROFİL -->
+  <section id="view-profil" hidden>
+    <div class="pgrid">
+      <div class="panel">
+        <h2>Bilgilerin</h2>
+        <div class="form">
+          <div class="fld full"><label>Cinsiyet</label>
+            <div class="seg" id="sexSeg"><button data-v="e" aria-pressed="true">Erkek</button><button data-v="k" aria-pressed="false">Kadın</button></div></div>
+          <div class="fld"><label for="pAge">Yaş</label><input class="inp num" id="pAge" type="number" min="14" max="100" inputmode="numeric"></div>
+          <div class="fld"><label for="pHeight">Boy (cm)</label><input class="inp num" id="pHeight" type="number" min="120" max="230" inputmode="numeric"></div>
+          <div class="fld"><label for="pWeight">Kilo (kg)</label><input class="inp num" id="pWeight" type="number" min="30" max="300" step="0.1" inputmode="decimal"><span class="hint">Günlük ekrandan kilo girersen burası güncellenir.</span></div>
+          <div class="fld"><label for="pNeck">Boyun çevresi (cm)</label><input class="inp num" id="pNeck" type="number" min="20" max="70" step="0.5" inputmode="decimal"><span class="hint">Adem elmasının hemen altından.</span></div>
+          <div class="fld"><label for="pWaist">Bel çevresi (cm)</label><input class="inp num" id="pWaist" type="number" min="40" max="200" step="0.5" inputmode="decimal"><span class="hint" id="waistHint">Göbek deliği hizasından, nefes vermişken.</span></div>
+          <div class="fld" id="hipFld"><label for="pHip">Kalça çevresi (cm)</label><input class="inp num" id="pHip" type="number" min="50" max="200" step="0.5" inputmode="decimal"><span class="hint">Kalçanın en geniş yerinden.</span></div>
+          <div class="fld full"><label for="pAct">Günlük hareket seviyesi</label>
+            <select class="inp" id="pAct">
+              <option value="1.2">Hareketsiz — masa başı, spor yok</option>
+              <option value="1.375">Az hareketli — haftada 1–3 gün spor</option>
+              <option value="1.55">Orta — haftada 3–5 gün spor</option>
+              <option value="1.725">Çok hareketli — haftada 6–7 gün spor</option>
+              <option value="1.9">Aşırı — ağır fiziksel iş + antrenman</option>
+            </select></div>
+          <div class="fld full"><label for="pGoal">Hedef</label>
+            <select class="inp" id="pGoal">
+              <option value="-750">Hızlı kilo ver (≈ 0,7 kg/hafta)</option>
+              <option value="-500">Kilo ver (≈ 0,45 kg/hafta)</option>
+              <option value="-250">Yavaş kilo ver (≈ 0,2 kg/hafta)</option>
+              <option value="0">Kilonu koru</option>
+              <option value="300">Kas kazan (hafif fazla)</option>
+            </select></div>
+        </div>
+      </div>
+      <div class="panel res" id="profileRes"></div>
+    </div>
+  </section>
+</div>
+
+<!-- Öğün ekleme -->
+<div class="scrim" id="scrim" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="shTitle">
+    <div class="sh-head"><h2 id="shTitle">Öğüne ekle</h2><button class="iconbtn" id="shClose" aria-label="Kapat">×</button></div>
+    <div class="tabs modes" role="tablist" id="modeTabs">
+      <button role="tab" data-m="list" aria-selected="true">Listeden</button>
+      <button role="tab" data-m="recipe" aria-selected="false">Tariften hesapla</button>
+      <button role="tab" data-m="guess" aria-selected="false">Tahmini</button>
+    </div>
+    <div class="sh-body" id="shBody"></div>
+  </div>
+</div>
+
+<script>
+/* ---------- besin veritabanı: 100 g başına kcal, protein, karbonhidrat, yağ, lif; porsiyonlar gram ---------- */
+const RAW = `
+Kahvaltı|Yumurta (haşlanmış)|155|13|1.1|11|0|adet:50
+Kahvaltı|Menemen|95|5|4|6.5|1|kase:200;tava porsiyon:250
+Kahvaltı|Beyaz peynir|260|17|2|21|0|dilim:30;kibrit kutusu:25
+Kahvaltı|Kaşar peyniri|360|26|1|28|0|dilim:20
+Kahvaltı|Siyah zeytin|230|1.5|6|22|3|adet:4;avuç:40
+Kahvaltı|Yeşil zeytin|145|1|4|15|3|adet:4;avuç:40
+Kahvaltı|Bal|304|0.3|82|0|0|tatlı kaşığı:10;yemek kaşığı:20
+Kahvaltı|Reçel|250|0.4|62|0.1|1|tatlı kaşığı:10;yemek kaşığı:20
+Kahvaltı|Sucuk|450|20|2|40|0|dilim:10
+Kahvaltı|Simit|330|10|60|6|3|adet:110;yarım:55
+Kahvaltı|Poğaça|380|8|42|20|1.5|adet:70
+Kahvaltı|Su böreği|280|10|25|15|1|dilim:150
+Kahvaltı|Yulaf ezmesi|389|17|66|7|10|yemek kaşığı:10;su bardağı:80
+Kahvaltı|Fıstık ezmesi|588|25|20|50|6|tatlı kaşığı:8;yemek kaşığı:16
+Kahvaltı|Omlet (sade)|154|11|1|12|0|2 yumurtalık:120;3 yumurtalık:170
+Kahvaltı|Lor peyniri|98|11|3.4|4.5|0|yemek kaşığı:20;kase:150
+Kahvaltı|Tulum peyniri|370|22|1|31|0|dilim:25
+Kahvaltı|Labne|230|6|4|21|0|yemek kaşığı:20
+Kahvaltı|Kaymak|560|2.5|3.5|60|0|yemek kaşığı:20
+Kahvaltı|Tahin-pekmez|430|8|50|23|3|yemek kaşığı:25
+Kahvaltı|Gözleme (peynirli)|240|9|30|9|1.5|adet:250
+Kahvaltı|Açma|390|7|45|20|1.5|adet:80
+Kahvaltı|Granola|470|10|64|19|7|yemek kaşığı:12;su bardağı:100
+Kahvaltı|Pastırma|250|30|1|14|0|dilim:8
+Kahvaltı|Hindi füme|105|18|2|2.5|0|dilim:12
+Kahvaltı|Krep|230|6|28|10|1|adet:80
+Ekmek|Beyaz ekmek|265|9|49|3.2|2.7|dilim:30;çeyrek ekmek:60
+Ekmek|Tam buğday ekmeği|247|13|41|3.4|7|dilim:30
+Ekmek|Lavaş|290|9|56|3|2.5|adet:70
+Süt ürünü|Süt (tam yağlı)|61|3.2|4.8|3.3|0|su bardağı:200
+Süt ürünü|Yoğurt (tam yağlı)|61|3.5|4.7|3.3|0|yemek kaşığı:30;kase:200
+Süt ürünü|Süzme yoğurt|97|9|4|5|0|yemek kaşığı:30;kase:150
+Süt ürünü|Ayran|38|1.8|2.7|2|0|bardak:200;kutu:300
+Süt ürünü|Cacık|50|2.5|3|3|0.3|kase:200
+Süt ürünü|Kefir|50|3.3|4.5|2|0|bardak:200
+Süt ürünü|Light süt|46|3.4|4.9|1.5|0|su bardağı:200
+Süt ürünü|Light yoğurt|42|4|5|0.6|0|yemek kaşığı:30;kase:200
+Süt ürünü|Protein puding|90|10|10|1.5|0|kase:200
+Çorba|Domates çorbası|55|1.2|8|2|1|kase:250;tabak:300
+Çorba|Tarhana çorbası|60|2.5|9|1.8|1|kase:250;tabak:300
+Çorba|İşkembe çorbası|75|7|3|4|0|kase:300
+Çorba|Brokoli çorbası|50|2|5|2.5|1.5|kase:250
+Ana yemek|Etli türlü|95|6|6|5.5|2.5|tabak:250
+Ana yemek|Bamya (etli)|80|5|6|4|3|tabak:250
+Ana yemek|Ispanak yemeği|65|3|5|4|2.5|tabak:200
+Ana yemek|Pırasa (zeytinyağlı)|75|1.5|9|4|2|tabak:200
+Ana yemek|Barbunya pilaki|110|5|14|4|5|tabak:200
+Ana yemek|Etli biber dolması|120|6|12|5.5|2|adet:120
+Ana yemek|Hünkar beğendi|165|9|7|11|1.5|tabak:300
+Ana yemek|İçli köfte (kızarmış)|260|11|26|13|3|adet:70
+Ana yemek|Çiğ köfte (etsiz)|190|5|35|4|5|adet (parmak):25;dürüm:200
+Ana yemek|Fırın tavuk-patates|140|11|9|7|1.2|tabak:300
+Ana yemek|Tavuk şiş|165|27|2|5.5|0|şiş:75;porsiyon:150
+Ana yemek|Adana kebap|280|17|2|23|0|porsiyon:180
+Ana yemek|İskender|210|11|12|13|0.8|porsiyon:350
+Ana yemek|Kuzu pirzola|290|25|0|21|0|adet:70
+Çorba|Mercimek çorbası|70|4|10|1.8|2.5|kase:250;tabak:300
+Çorba|Ezogelin çorbası|65|3|10|1.8|2|kase:250;tabak:300
+Çorba|Yayla çorbası|60|2.5|8|2|0.3|kase:250;tabak:300
+Çorba|Tavuk suyu çorba|45|3.5|5|1.3|0.3|kase:250;tabak:300
+Ana yemek|Kuru fasulye (etli)|130|7|13|5|5|tabak:250;tepeleme tabak:350;kase:200
+Ana yemek|Nohut yemeği|140|7|17|5|5|tabak:250;tepeleme tabak:350
+Ana yemek|Taze fasulye (zeytinyağlı)|70|1.8|7|4|3|tabak:200
+Ana yemek|Karnıyarık|120|5|7|8|3|adet:250
+Ana yemek|İmam bayıldı|110|1.5|8|8|3|adet:200
+Ana yemek|Patates yemeği (kıymalı)|95|3|12|4|1.8|tabak:250
+Ana yemek|Mantı (yoğurtlu)|170|7|22|6|1|tabak:300
+Ana yemek|Yaprak sarma (zeytinyağlı)|180|3|22|9|3|adet:25;avuç (5 adet):125
+Ana yemek|Mercimek köftesi|150|6|25|3|4|adet:35
+Ana yemek|Tavuk sote|140|18|4|6|1|tabak:250
+Pilav & makarna|Pirinç pilavı|150|2.8|28|3.5|0.4|yemek kaşığı:25;tabak:180;tepeleme tabak:280
+Pilav & makarna|Bulgur pilavı|130|3.5|23|3|4|yemek kaşığı:25;tabak:180;tepeleme tabak:280
+Pilav & makarna|Makarna (sade)|158|5.8|31|0.9|1.8|tabak:200;tepeleme tabak:300
+Pilav & makarna|Spagetti bolonez|150|7|18|5.5|1.5|tabak:300
+Pilav & makarna|Fırın makarna|175|7|20|7|1|dilim:200
+Pilav & makarna|Kuskus|112|3.8|23|0.2|1.4|tabak:180
+Pilav & makarna|Haşlanmış patates|87|1.9|20|0.1|1.8|orta boy:170
+Et & balık|Levrek (ızgara)|125|23|0|3.5|0|porsiyon:250
+Et & balık|Çipura (ızgara)|135|22|0|5|0|porsiyon:250
+Et & balık|Hindi göğsü (ızgara)|135|30|0|1|0|porsiyon:150
+Et & balık|Tavuk kanat|240|23|0|16|0|adet:35
+Et & balık|Haşlama et|215|28|0|11|0|porsiyon:150
+Et & balık|Karides (ızgara)|99|24|0.2|0.3|0|avuç:80;porsiyon:150
+Dışarıda|Midye dolma|160|7|22|5|1|adet:25
+Dışarıda|Kokoreç|280|15|20|16|1|yarım ekmek:250
+Dışarıda|Islak hamburger|270|9|30|13|1.5|adet:110
+Dışarıda|Kaşarlı tost|300|13|30|14|1.5|adet:150
+Dışarıda|Kumpir|160|5|20|7|2|adet:400
+Dışarıda|Sushi (maki)|150|5|28|1.5|1|adet:25
+Dışarıda|Tavuk wrap|200|12|22|7|2|adet:250
+Dışarıda|Balık ekmek|210|13|22|8|1.5|adet:300
+Et & balık|Tavuk göğsü (ızgara)|165|31|0|3.6|0|avuç içi kadar:100;porsiyon:150
+Et & balık|Tavuk but (fırın, derisiz)|190|25|0|10|0|adet:120
+Et & balık|Köfte (ızgara)|250|18|5|18|0.5|adet:30;porsiyon (6 adet):180
+Et & balık|Biftek|250|26|0|16|0|porsiyon:180
+Et & balık|Et döner|260|20|3|19|0|porsiyon:120
+Et & balık|Somon (fırın)|206|22|0|13|0|porsiyon:150
+Et & balık|Ton balığı (süzülmüş)|128|26|0|3|0|kutu:120
+Et & balık|Hamsi tava|250|18|8|16|0|porsiyon:200
+Dışarıda|Tavuk döner dürüm|230|13|24|9|1.5|adet:300
+Dışarıda|Lahmacun|250|11|32|8|2.5|adet:150
+Dışarıda|Kıymalı pide|260|12|33|9|1.5|dilim:60;adet:350
+Dışarıda|Hamburger|260|13|28|11|1.5|adet:220
+Dışarıda|Pizza|265|11|33|10|2|dilim:110
+Dışarıda|Patates kızartması|312|3.4|41|15|3.8|küçük porsiyon:80;orta porsiyon:120;tabak:200
+Sebze & salata|Çoban salata|45|1|4|3|1.5|kase:200
+Sebze & salata|Mevsim salata (zeytinyağlı)|60|1.2|4|4.5|2|kase:150
+Sebze & salata|Domates|18|0.9|3.9|0.2|1.2|dilim:20;orta boy:120
+Sebze & salata|Salatalık|15|0.7|3.6|0.1|0.5|adet:150
+Sebze & salata|Brokoli (haşlanmış)|35|2.4|7|0.4|3.3|kase:150
+Sebze & salata|Haşlanmış nohut|164|8.9|27|2.6|7.6|avuç:40;kase:160
+Sebze & salata|Avokado|160|2|8.5|14.7|6.7|yarım:75
+Sebze & salata|Haşlanmış mısır|96|3.4|21|1.5|2.4|koçan:150
+Sebze & salata|Közlenmiş biber|30|1|6|0.3|2|adet:60
+Sebze & salata|Turşu|15|0.6|3|0.2|1.5|kase:100
+Sebze & salata|Humus|166|8|14|9.6|6|yemek kaşığı:30;kase:150
+Sebze & salata|Acılı ezme|60|1.5|7|3|2|yemek kaşığı:30
+Sebze & salata|Haydari|140|5|4|12|0|yemek kaşığı:30
+Meyve|Karpuz|30|0.6|7.6|0.2|0.4|dilim:300
+Meyve|Kavun|34|0.8|8|0.2|0.9|dilim:250
+Meyve|Çilek|32|0.7|7.7|0.3|2|avuç:70;kase:150
+Meyve|Armut|57|0.4|15|0.1|3.1|orta boy:180
+Meyve|Kiraz|63|1|16|0.2|2.1|avuç:80
+Meyve|Hurma|277|1.8|75|0.2|6.7|adet:8
+Meyve|Nar|83|1.7|19|1.2|4|yarım:120
+Meyve|Kuru incir|249|3.3|64|0.9|9.8|adet:20
+Meyve|Şeftali|39|0.9|10|0.3|1.5|orta boy:150
+Meyve|Kivi|61|1.1|15|0.5|3|adet:75
+Kuruyemiş|Antep fıstığı|560|20|28|45|10|avuç:30
+Kuruyemiş|Kaju|553|18|30|44|3.3|avuç:30
+Kuruyemiş|Yer fıstığı|567|26|16|49|8.5|avuç:30
+Kuruyemiş|Kabak çekirdeği (içi)|559|30|11|49|6|avuç:25
+Kuruyemiş|Kuru üzüm|299|3.1|79|0.5|3.7|avuç:40
+Meyve|Elma|52|0.3|14|0.2|2.4|orta boy:180
+Meyve|Muz|89|1.1|23|0.3|2.6|orta boy:120
+Meyve|Portakal|47|0.9|12|0.1|2.4|orta boy:180
+Meyve|Mandalina|53|0.8|13|0.3|1.8|adet:90
+Meyve|Üzüm|69|0.7|18|0.2|0.9|avuç:80;kase:150
+Meyve|Kuru kayısı|241|3.4|63|0.5|7|adet:8;avuç:40
+Kuruyemiş|Ceviz içi|654|15|14|65|7|adet:5;avuç:30
+Kuruyemiş|Badem|579|21|22|50|12.5|avuç:30
+Kuruyemiş|Fındık|628|15|17|61|10|avuç:30
+Kuruyemiş|Leblebi|370|22|58|6|13|avuç:35
+Kuruyemiş|Ay çekirdeği (içi)|584|21|20|51|9|avuç:25
+Tatlı & atıştırmalık|Bitter çikolata (%70)|600|8|46|43|11|kare:10
+Tatlı & atıştırmalık|Sütlü çikolata|535|8|59|30|3|kare:8;tablet:80
+Tatlı & atıştırmalık|Baklava|430|6|50|24|2|dilim:40
+Tatlı & atıştırmalık|Sütlaç|120|3.5|20|3|0|kase:180
+Tatlı & atıştırmalık|Cips|536|7|53|34|4.8|avuç:25;paket:100
+Tatlı & atıştırmalık|Künefe|330|8|38|16|0.5|porsiyon:180
+Tatlı & atıştırmalık|Kazandibi|150|4|24|4|0|dilim:150
+Tatlı & atıştırmalık|Revani|330|5|55|10|0.7|dilim:90
+Tatlı & atıştırmalık|Dondurma|207|3.5|24|11|0.7|top:60
+Tatlı & atıştırmalık|Lokum|350|0.2|88|0.5|0.5|adet:15
+Tatlı & atıştırmalık|Tahin helvası|500|12|50|30|4|dilim:50
+Tatlı & atıştırmalık|Bisküvi|450|7|70|16|2|adet:8
+Tatlı & atıştırmalık|Kek|370|5|52|16|1|dilim:60
+Tatlı & atıştırmalık|Protein bar|380|30|35|12|6|adet:60
+Tatlı & atıştırmalık|Pirinç patlağı|387|8|81|2.8|4|adet:9
+Tatlı & atıştırmalık|Kraker|430|9|70|12|3|avuç:30
+İçecek|Çay (1 şekerli)|20|0|5|0|0|ince belli bardak:100
+İçecek|Türk kahvesi (sade)|3|0.1|0.4|0|0|fincan:65
+İçecek|Kola|42|0|10.6|0|0|bardak:200;kutu:330
+İçecek|Portakal suyu|45|0.7|10.4|0.2|0.2|bardak:200
+İçecek|Protein tozu|380|75|8|5|1|ölçek:30
+İçecek|Latte|56|3|4.6|3|0|bardak (350 ml):350
+İçecek|Filtre kahve (sade)|2|0.3|0|0|0|kupa:250
+İçecek|Meyve suyu (kutu)|48|0.3|12|0.1|0.2|kutu:200
+İçecek|Muzlu süt / smoothie|80|3|14|1.5|1|bardak:300
+İçecek|Şalgam|8|0.3|1.5|0|0|bardak:200
+İçecek|Limonata|45|0|11|0|0|bardak:250
+İçecek|Enerji içeceği|45|0|11|0|0|kutu:250
+İçecek|Kola zero|0.3|0|0|0|0|kutu:330
+İçecek|Bira|43|0.5|3.6|0|0|kutu:500
+İçecek|Şarap|83|0.1|2.6|0|0|kadeh:150
+İçecek|Rakı|250|0|0|0|0|tek:40
+Malzeme (çiğ)|Pirinç (çiğ)|360|7|79|0.6|1.3|yemek kaşığı:15;su bardağı:180
+Malzeme (çiğ)|Bulgur (çiğ)|342|12|76|1.3|12.5|su bardağı:170
+Malzeme (çiğ)|Kırmızı mercimek (çiğ)|358|24|63|2|11|yemek kaşığı:13;su bardağı:190
+Malzeme (çiğ)|Kuru fasulye (çiğ)|333|23|60|0.8|15|su bardağı:180
+Malzeme (çiğ)|Nohut (kuru)|364|19|61|6|17|su bardağı:180
+Malzeme (çiğ)|Makarna (çiğ)|371|13|75|1.5|3.2|su bardağı:100;paket:500
+Malzeme (çiğ)|Un|364|10|76|1|2.7|yemek kaşığı:10;su bardağı:110
+Malzeme (çiğ)|Dana kıyma (orta yağlı)|250|17|0|20|0|yarım kilo:500
+Malzeme (çiğ)|Kuşbaşı dana|190|20|0|12|0|yarım kilo:500
+Malzeme (çiğ)|Tavuk göğsü (çiğ)|120|23|0|2.6|0|yarım göğüs:200
+Malzeme (çiğ)|Zeytinyağı|884|0|0|100|0|çay kaşığı:4;yemek kaşığı:13;çay bardağı:90
+Malzeme (çiğ)|Ayçiçek yağı|884|0|0|100|0|yemek kaşığı:13;çay bardağı:90
+Malzeme (çiğ)|Tereyağı|717|0.9|0.1|81|0|tatlı kaşığı:5;yemek kaşığı:14
+Malzeme (çiğ)|Soğan|40|1.1|9.3|0.1|1.7|orta boy:110
+Malzeme (çiğ)|Domates salçası|82|4.3|19|0.5|4|yemek kaşığı:20
+Malzeme (çiğ)|Patates|77|2|17|0.1|2.2|orta boy:170
+Malzeme (çiğ)|Havuç|41|0.9|10|0.2|2.8|orta boy:70
+Malzeme (çiğ)|Patlıcan|25|1|6|0.2|3|orta boy:250
+Malzeme (çiğ)|Kabak|17|1.2|3.1|0.3|1|orta boy:200
+Malzeme (çiğ)|Şeker|387|0|100|0|0|yemek kaşığı:15;su bardağı:200
+Malzeme (çiğ)|Esmer pirinç (çiğ)|362|7.5|76|2.7|3.4|su bardağı:180
+Malzeme (çiğ)|Kinoa (çiğ)|368|14|64|6|7|su bardağı:170
+Malzeme (çiğ)|Yeşil mercimek (çiğ)|352|25|60|1|11|su bardağı:190
+Malzeme (çiğ)|Tavuk but (çiğ, derisiz)|120|20|0|4|0|adet:120
+Malzeme (çiğ)|Yumurta (çiğ)|143|12.6|0.7|9.5|0|adet:50
+Malzeme (çiğ)|Süt|61|3.2|4.8|3.3|0|su bardağı:200
+Malzeme (çiğ)|Yoğurt|61|3.5|4.7|3.3|0|su bardağı:200
+Malzeme (çiğ)|Ispanak (çiğ)|23|2.9|3.6|0.4|2.2|demet:300
+Malzeme (çiğ)|Sivri biber|20|0.9|4.6|0.2|1.8|adet:20
+Malzeme (çiğ)|Sarımsak|149|6.4|33|0.5|2.1|diş:4
+Malzeme (çiğ)|Mantar|22|3.1|3.3|0.3|1|kase:100
+Malzeme (çiğ)|Galeta unu|395|13|72|5|4.5|yemek kaşığı:8
+Malzeme (çiğ)|Krema|340|2|3|36|0|yemek kaşığı:15;paket:200
+Malzeme (çiğ)|Rendelenmiş kaşar|360|26|1|28|0|avuç:30
+`;
+const FOODS = RAW.trim().split("\n").map((l,i)=>{const [cat,name,k,p,c,f,fib,por]=l.split("|");
+  return {id:"f"+i,cat,name,k:+k,p:+p,c:+c,f:+f,fib:+fib,g:true,por:por.split(";").map(x=>{const [a,b]=x.split(":");return [a,+b]})}});
+const CATS=[...new Set(FOODS.map(f=>f.cat))];
+
+/* Listede olmayan yemekler için tür bazlı tahmin (100 g başına) */
+const GUESS=[
+ ["Çorba",60,3,8,2,1.5],["Zeytinyağlı sebze yemeği",85,1.8,7,5.5,3],["Etli sebze / sulu yemek",110,7,8,6,2.5],
+ ["Baklagil yemeği",130,7,16,4.5,5],["Pilav / makarna",155,3.5,28,3.5,1],["Izgara et / tavuk / balık",210,25,1,12,0],
+ ["Kızartma",280,6,25,17,2.5],["Hamur işi / börek",300,9,32,15,1.5],["Fast food (burger, pizza)",265,12,30,11,2],
+ ["Sütlü tatlı",130,3.5,21,3.5,0],["Şerbetli tatlı",380,5,52,18,1.5],["Salata",55,1.2,4,4,2]
+];
+const GUESS_POR=[["bir avuç",40],["bir kaşık",25],["yarım tabak",125],["bir kase",220],["bir tabak",250],["tepeleme tabak",350],["iki tabak",500]];
+const EAT_POR=[["yarım tabak",0.5],["bir kase",0.8],["bir tabak",1],["tepeleme tabak",1.4],["iki tabak",2]];
+const MEALS=[["kahvalti","Kahvaltı"],["ogle","Öğle"],["aksam","Akşam"],["ara","Ara öğün"]];
+
+/* ---------- durum ---------- */
+const KEY="kalori-defteri-v1";
+const pad=n=>String(n).padStart(2,"0");
+const ymd=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const TODAY=ymd(new Date());
+let cur=TODAY;
+function sampleState(){
+  const mk=(id,por,amt,meal)=>entryFrom(FOODS.find(f=>f.name===id),por,amt,true);
+  const s={sample:true,profile:{sex:"e",age:29,height:178,weight:84,neck:39,waist:91,hip:"",act:1.375,goal:-500},days:{}};
+  s.v=2;
+  s.days[TODAY]={ex:0,w:null,wo:[],meals:{
+    kahvalti:[mk("Yumurta (haşlanmış)","adet",2),mk("Beyaz peynir","dilim",1),mk("Siyah zeytin","adet",5),mk("Tam buğday ekmeği","dilim",2),mk("Çay (1 şekerli)","ince belli bardak",2)],
+    ogle:[mk("Mercimek çorbası","kase",1),mk("Tavuk döner dürüm","adet",1),mk("Ayran","bardak",1)],
+    aksam:[mk("Kuru fasulye (etli)","tabak",1),mk("Pirinç pilavı","tepeleme tabak",1),mk("Çoban salata","kase",1)],
+    ara:[mk("Badem","avuç",1),mk("Elma","orta boy",1)]}};
+  return s;
+}
+let S;
+try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){S=null}
+let fresh=false;
+if(!S||!S.profile){S=sampleState();fresh=true}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function day(d=cur){if(!S.days[d])S.days[d]={ex:0,w:null,wo:[],meals:{kahvalti:[],ogle:[],aksam:[],ara:[]}};if(!S.days[d].wo)S.days[d].wo=[];return S.days[d]}
+
+/* ---------- hesaplar ---------- */
+function entryFrom(food,porLabel,amt,sample){
+  const pr=food.por.find(p=>p[0]===porLabel);
+  const units=(pr?pr[1]:1)*amt;            // gram (g:true) ya da porsiyon sayısı
+  const fac=food.g?units/100:units;
+  const r=x=>Math.round(x*10)/10;
+  return {name:food.name,por:`${fmt(amt)} ${porLabel}`+(food.g&&porLabel!=="g"?` · ~${Math.round(units)} g`:""),
+    k:Math.round(food.k*fac),p:r(food.p*fac),c:r(food.c*fac),f:r(food.f*fac),fib:r(food.fib*fac),sample:!!sample};
+}
+function fmt(n,d=0){return Number(n).toLocaleString("tr-TR",{maximumFractionDigits:d,minimumFractionDigits:0})}
+function latestWeight(at=cur){
+  const ds=Object.keys(S.days).filter(d=>d<=at&&S.days[d].w).sort();
+  return ds.length?S.days[ds[ds.length-1]].w:+S.profile.weight;
+}
+function calc(){
+  const P=S.profile, w=latestWeight(), h=+P.height, a=+P.age, male=P.sex==="e";
+  const bmi=w/((h/100)**2);
+  let bf=null, method="";
+  const n=+P.neck, wa=+P.waist, hi=+P.hip;
+  if(male&&n&&wa&&wa>n){bf=495/(1.0324-0.19077*Math.log10(wa-n)+0.15456*Math.log10(h))-450;method="ABD Donanması formülü (boyun + bel)"}
+  else if(!male&&n&&wa&&hi&&wa+hi>n){bf=495/(1.29579-0.35004*Math.log10(wa+hi-n)+0.221*Math.log10(h))-450;method="ABD Donanması formülü (boyun + bel + kalça)"}
+  let measured=bf!=null&&isFinite(bf)&&bf>2&&bf<70;
+  if(!measured){bf=1.2*bmi+0.23*a-10.8*(male?1:0)-5.4;method="Vücut kitle indeksinden tahmin (ölçü girilmedi)"}
+  const fatKg=w*bf/100, lbm=w-fatKg;
+  const mifflin=10*w+6.25*h-5*a+(male?5:-161);
+  const katch=370+21.6*lbm;
+  const bmr=measured?katch:mifflin;
+  const tdee=bmr*(+P.act);
+  let target=tdee+(+P.goal);
+  const floor=male?1500:1200;
+  const floored=target<floor; if(floored)target=floor;
+  const prot=measured?Math.max(2.2*lbm,1.6*w):1.8*w;
+  const fat=Math.max(0.8*w,target*0.25/9);
+  const carb=Math.max(0,(target-prot*4-fat*9)/4);
+  const fib=Math.round(target/1000*14);
+  return {w,bmi,bf,measured,method,fatKg,lbm,mifflin,katch,bmr,tdee,target:Math.round(target),floored,floor,prot,fat,carb,fib,male};
+}
+function totals(d=cur){
+  const t={k:0,p:0,c:0,f:0,fib:0};
+  for(const [m] of MEALS)for(const e of day(d).meals[m])for(const x in t)t[x]+=e[x];
+  return t;
+}
+
+/* ---------- çizim ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function renderDate(){
+  const d=new Date(cur+"T12:00:00");
+  const lbl=d.toLocaleDateString("tr-TR",{weekday:"long",day:"numeric",month:"long"});
+  $("#dateLbl").textContent=(cur===TODAY?"Bugün · ":"")+lbl;
+  $("#next").disabled=cur>=TODAY; $("#next").style.opacity=cur>=TODAY?.35:1;
+}
+function renderDay(){
+  const C=calc(), T=totals(), D=day();
+  const auto=dayWoKcal(cur), ex=(+D.ex||0)+auto, burn=C.tdee+ex, target=C.target+(ex? Math.round(ex*0.5):0);
+  const remaining=target-T.k, deficit=burn-T.k;
+  $("#bTarget").innerHTML=`${fmt(target)}<small>kcal</small>`;
+  $("#bEaten").innerHTML=`${fmt(T.k)}<small>kcal</small>`;
+  $("#bBurn").innerHTML=`${fmt(burn)}<small>kcal</small>`;
+  $("#bDefLbl").textContent=deficit>=0?"Kalori açığı":"Kalori fazlası";
+  $("#bDef").innerHTML=`<span style="color:${deficit>=0?"var(--good)":"var(--bad)"}">${fmt(Math.abs(deficit))}</span><small>kcal</small>`;
+  const wk=deficit*7/7700;
+  $("#eq").innerHTML=`Vücudun bugün <b>${fmt(burn)} kcal</b> yakıyor (dinlenirken ${fmt(C.bmr)} kcal${ex?`, egzersiz ${fmt(ex)} kcal`:""}). `+
+    (deficit>=0?`Bu tempoyla haftada yaklaşık <b>${fmt(wk,2)} kg</b> yağ kaybı olur.`:`Bu tempoyla haftada yaklaşık <b>${fmt(-wk,2)} kg</b> alınır.`)+
+    (ex?` Egzersizin yarısı (${fmt(ex*0.5)} kcal) hedefe eklendi.`:"");
+  // halka
+  const pct=Math.min(T.k/target,1.5), R=72, L=2*Math.PI*R;
+  const over=T.k>target;
+  $("#ring").innerHTML=`<svg viewBox="0 0 176 176" aria-hidden="true"><circle cx="88" cy="88" r="${R}" fill="none" stroke="var(--sunk)" stroke-width="14"/>
+    <circle class="prog" cx="88" cy="88" r="${R}" fill="none" stroke="${over?"var(--bad)":"var(--accent)"}" stroke-width="14" stroke-linecap="round" stroke-dasharray="${L}" stroke-dashoffset="${L*(1-Math.min(pct,1))}"/></svg>
+    <div class="c"><div class="lbl">${over?"Hedefi aştın":"Kalan"}</div><div class="big num">${fmt(Math.abs(remaining))}</div><div class="muted" style="font-size:13px">kcal</div></div>`;
+  $("#exAuto").innerHTML=D.wo.length?`Spor sekmesinden <b>${fmt(auto)} kcal</b> (${D.wo.length} hareket)`:`Spor sekmesinde antrenman ekleyince yakılan kalori buraya gelir.`;
+  if(document.activeElement!==$("#exKcal"))$("#exKcal").value=D.ex||""; $("#dayWeight").value=D.w||""; $("#dayWeight").placeholder=fmt(C.w,1);
+
+  // makrolar
+  const scale=target/C.target;
+  const goals={p:C.prot*scale,c:C.carb*scale,f:C.fat*scale,fib:C.fib};
+  const defs=[["p","Protein","--pro"],["c","Karbonhidrat","--carb"],["f","Yağ","--fat"],["fib","Lif","--fib"]];
+  const st={};
+  $("#macros").innerHTML=defs.map(([k,n,col])=>{
+    const got=T[k], goal=goals[k], r=got/goal;
+    const s=k==="fib"?(r<0.8?"low":"ok"):(r<0.8?"low":r>1.15?"high":"ok"); st[k]={s,got,goal,r};
+    const word={low:"Eksik",ok:"Yerinde",high:"Fazla"}[s];
+    const max=Math.max(goal*1.3,got); const w1=Math.min(got,goal)/max*100, wOver=got>goal?(got-goal)/max*100:0, tick=goal/max*100;
+    return `<div class="mrow"><div class="head"><span class="name"><span class="dot" style="background:var(${col})"></span>${n}</span>
+      <span style="display:flex;gap:8px;align-items:center"><span class="num">${fmt(got)} / ${fmt(goal)} g</span><span class="pill ${s}">${word}</span></span></div>
+      <div class="track"><div class="fill" style="width:${w1}%;background:var(${col})"></div>${wOver?`<div class="over" style="left:${tick}%;width:${wOver}%"></div>`:""}<div class="tick" style="left:calc(${tick}% - 1px)"></div></div></div>`}).join("");
+  const kp=T.p*4,kc=T.c*4,kf=T.f*9,sum=kp+kc+kf||1;
+  $("#split").innerHTML=[[kp,"--pro"],[kc,"--carb"],[kf,"--fat"]].map(([v,c])=>`<span style="width:${v/sum*100}%;background:var(${c})"></span>`).join("");
+  const tp=C.prot*4/C.target*100, tf=C.fat*9/C.target*100, tc=100-tp-tf;
+  $("#splitLeg").innerHTML=`<span>Protein %${fmt(kp/sum*100)} <span class="muted">(hedef %${fmt(tp)})</span></span><span>Karb. %${fmt(kc/sum*100)} <span class="muted">(hedef %${fmt(tc)})</span></span><span>Yağ %${fmt(kf/sum*100)} <span class="muted">(hedef %${fmt(tf)})</span></span>`;
+
+  // değerlendirme
+  const N=[];
+  if(T.k===0)N.push(["","Bugün henüz bir şey eklemedin. Sağdaki öğünlerden <b>Ekle</b>'ye bas."]);
+  else{
+    if(remaining>300)N.push(["low",`Hedefe <b>${fmt(remaining)} kcal</b> var. ${cur===TODAY?"Kalan öğünlerde bunu kapatabilirsin.":"Bu gün hedefin altında kalmışsın."}`]);
+    else if(remaining<-150)N.push(["high",`Hedefi <b>${fmt(-remaining)} kcal</b> aştın. ${deficit>0?`Yine de ${fmt(deficit)} kcal açıktasın.`:"Bugün kalori fazlasındasın."}`]);
+    else N.push(["ok",`Kalori hedefine çok yakınsın (${remaining>=0?fmt(remaining)+" kcal kaldı":fmt(-remaining)+" kcal fazla"}).`]);
+    const sug={p:["Tavuk göğsü (ızgara)","porsiyon"],c:["Bulgur pilavı","tabak"],f:["Ceviz içi","avuç"],fib:["Kuru fasulye (etli)","tabak"]};
+    const nm={p:"protein",c:"karbonhidrat",f:"yağ",fib:"lif"};
+    for(const k of ["p","c","f","fib"]){
+      const x=st[k], diff=Math.abs(x.goal-x.got);
+      if(x.s==="low"){const f=FOODS.find(z=>z.name===sug[k][0]);const e=entryFrom(f,sug[k][1],1);
+        N.push(["low",`<b>${fmt(diff)} g ${nm[k]}</b> eksik. Örnek: 1 ${sug[k][1]} ${f.name.toLowerCase()} ≈ ${fmt(e[k])} g ${nm[k]}, ${fmt(e.k)} kcal.`]);}
+      else if(x.s==="high"){
+        const top=allEntries().sort((a,b)=>b[k]-a[k])[0];
+        N.push(["high",`<b>${fmt(diff)} g fazla ${nm[k]}</b> aldın${top?`. En çok katkı: ${esc(top.name)} (${fmt(top[k])} g)`:""}.`]);}
+    }
+    if(N.filter(n=>n[0]!=="ok").length===0)N.push(["ok","Makroların dengeli. Böyle devam."]);
+    if(C.floored)N.push(["low",`Hedef kalori güvenli alt sınıra (${fmt(C.floor)} kcal) sabitlendi; daha düşüğü uzun vadede önerilmez.`]);
+  }
+  $("#notes").innerHTML=N.map(([c,t])=>`<li class="${c}"><span>${t}</span></li>`).join("");
+
+  // öğünler
+  $("#meals").innerHTML=`<h2>Öğünler</h2>`+MEALS.map(([m,n])=>{
+    const list=D.meals[m]; const mt=list.reduce((a,e)=>a+e.k,0);
+    return `<div class="meal"><div class="mhead"><div><h3>${n}</h3><div class="mtot num">${list.length?`${fmt(mt)} kcal · P ${fmt(list.reduce((a,e)=>a+e.p,0))} · K ${fmt(list.reduce((a,e)=>a+e.c,0))} · Y ${fmt(list.reduce((a,e)=>a+e.f,0))} g`:"—"}</div></div>
+      <button class="btn sm" data-add="${m}">+ Ekle</button></div>
+      <ul class="items">${list.length?list.map((e,i)=>`<li class="item"><div class="n">${esc(e.name)}${e.sample?'<span class="tag">örnek</span>':""}${e.est?'<span class="tag">tahmini</span>':""}<div class="por">${esc(e.por)}</div></div>
+        <div class="k">${fmt(e.k)} kcal</div><button class="del" data-del="${m}:${i}" aria-label="Sil">×</button>
+        <div class="m"><span style="color:var(--pro)">P ${fmt(e.p,1)}</span><span style="color:var(--carb)">K ${fmt(e.c,1)}</span><span style="color:var(--fat)">Y ${fmt(e.f,1)}</span><span style="color:var(--fib)">Lif ${fmt(e.fib,1)}</span></div></li>`).join(""):`<li class="empty">Henüz bir şey yok.</li>`}</ul></div>`}).join("");
+  const anySample=Object.values(S.days).some(d=>(d.wo||[]).some(w=>w.sample)||MEALS.some(([m])=>d.meals[m].some(e=>e.sample)));
+  $("#sampleBanner").hidden=!anySample&&!S.sample;
+}
+function allEntries(onlySample){const out=[];for(const [m] of MEALS)for(const e of day().meals[m])if(!onlySample||e.sample)out.push(e);return out}
+
+function renderProfile(){
+  const P=S.profile, C=calc();
+  document.querySelectorAll("#sexSeg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===P.sex));
+  $("#hipFld").hidden=P.sex==="e";
+  const set=(id,v)=>{const el=$(id);if(document.activeElement!==el)el.value=v??""};
+  set("#pAge",P.age);set("#pHeight",P.height);set("#pWeight",P.weight);set("#pNeck",P.neck);set("#pWaist",P.waist);set("#pHip",P.hip);
+  $("#pAct").value=String(P.act);$("#pGoal").value=String(P.goal);
+  const bands=C.male?[["Gerekli",2,6],["Atletik",6,14],["Fit",14,18],["Ortalama",18,25],["Yüksek",25,40]]:[["Gerekli",10,14],["Atletik",14,21],["Fit",21,25],["Ortalama",25,32],["Yüksek",32,48]];
+  const lo=bands[0][1],hi=bands[bands.length-1][2];
+  const band=(bands.find(b=>C.bf>=b[1]&&C.bf<b[2])||(C.bf<lo?bands[0]:bands[bands.length-1]))[0];
+  const mk=Math.min(Math.max((C.bf-lo)/(hi-lo),0),1)*100;
+  const cols=["var(--fat)","var(--good)","var(--fib)","var(--warn)","var(--bad)"];
+  $("#profileRes").innerHTML=`
+    <div><div class="lbl">Vücut yağ oranı</div>
+      <div class="bf"><span class="big num">%${fmt(C.bf,1)}</span><span class="pill ${band==="Yüksek"?"high":band==="Ortalama"?"low":"ok"}">${band}</span></div>
+      <div class="muted" style="font-size:13px">${C.method}</div></div>
+    <div><div class="scalewrap"><div class="scale">${bands.map((b,i)=>`<span style="background:${cols[i]};opacity:.55;flex:${b[2]-b[1]}"></span>`).join("")}</div><div class="mk" style="left:${mk}%"></div></div>
+      <div class="scalelbl">${bands.map(b=>`<span style="flex:${b[2]-b[1]}">${b[0]}</span>`).join("")}</div></div>
+    <dl class="kv">
+      <dt>Yağ kütlesi</dt><dd>${fmt(C.fatKg,1)} kg</dd>
+      <dt>Yağsız kütle (kas, kemik, su)</dt><dd>${fmt(C.lbm,1)} kg</dd>
+      <dt>Vücut kitle indeksi</dt><dd>${fmt(C.bmi,1)}</dd>
+      <dt>Dinlenme metabolizması${C.measured?" (Katch-McArdle)":" (Mifflin-St Jeor)"}</dt><dd>${fmt(C.bmr)} kcal</dd>
+      <dt>Günlük toplam yakım</dt><dd class="em">${fmt(C.tdee)} kcal</dd>
+      <dt>Günlük hedef</dt><dd class="em">${fmt(C.target)} kcal</dd>
+    </dl>
+    <div><div class="lbl" style="margin-bottom:6px">Günlük makro hedefi</div>
+    <dl class="kv">
+      <dt><span class="dot" style="background:var(--pro)"></span> Protein</dt><dd>${fmt(C.prot)} g</dd>
+      <dt><span class="dot" style="background:var(--carb)"></span> Karbonhidrat</dt><dd>${fmt(C.carb)} g</dd>
+      <dt><span class="dot" style="background:var(--fat)"></span> Yağ</dt><dd>${fmt(C.fat)} g</dd>
+      <dt><span class="dot" style="background:var(--fib)"></span> Lif</dt><dd>${fmt(C.fib)} g</dd>
+    </dl></div>
+    ${C.floored?`<div class="warnbox">Seçtiğin hedef ${fmt(C.floor)} kcal'in altına düşüyordu; güvenli alt sınıra çekildi.</div>`:""}
+    <div class="muted" style="font-size:12.5px">Formül tahminleri ±%3–4 yağ oranı sapabilir. Ölçüleri her hafta aynı saatte alırsan eğilim daha güvenilir olur.</div>`;
+}
+function render(){renderDate();renderDay();renderProfile();renderSpor();save()}
+
+/* ---------- olaylar ---------- */
+function showTab(t){for(const x of ["gun","spor","profil"]){$("#tab-"+x).setAttribute("aria-selected",t===x);$("#view-"+x).hidden=t!==x}
+  $(".datebar").style.visibility=t==="profil"?"hidden":"visible"}
+$("#tab-gun").onclick=()=>showTab("gun");$("#tab-spor").onclick=()=>showTab("spor");$("#tab-profil").onclick=()=>showTab("profil");
+const shift=n=>{const d=new Date(cur+"T12:00:00");d.setDate(d.getDate()+n);const s=ymd(d);if(s<=TODAY){cur=s;render()}};
+$("#prev").onclick=()=>shift(-1);$("#next").onclick=()=>shift(1);
+$("#clearSample").onclick=()=>{for(const d in S.days){for(const [m] of MEALS)S.days[d].meals[m]=S.days[d].meals[m].filter(e=>!e.sample);if(S.days[d].wo)S.days[d].wo=S.days[d].wo.filter(e=>!e.sample)}S.sample=false;render()};
+$("#exKcal").oninput=e=>{day().ex=Math.max(0,+e.target.value||0);render()};
+$("#dayWeight").onchange=e=>{const v=+e.target.value;day().w=v>=30?v:null;if(v>=30&&cur===TODAY)S.profile.weight=v;render()};
+$("#meals").onclick=e=>{const a=e.target.closest("[data-add]"),d=e.target.closest("[data-del]");
+  if(a)openSheet(a.dataset.add);
+  if(d){const [m,i]=d.dataset.del.split(":");day().meals[m].splice(+i,1);render()}};
+const bindP=(id,key)=>$(id).addEventListener("input",e=>{S.profile[key]=e.target.value;S.sample=false;renderDay();renderProfile();save()});
+bindP("#pAge","age");bindP("#pHeight","height");bindP("#pWeight","weight");bindP("#pNeck","neck");bindP("#pWaist","waist");bindP("#pHip","hip");
+$("#pAct").onchange=e=>{S.profile.act=+e.target.value;render()};$("#pGoal").onchange=e=>{S.profile.goal=+e.target.value;render()};
+$("#sexSeg").onclick=e=>{const b=e.target.closest("button");if(b){S.profile.sex=b.dataset.v;render()}};
+
+/* ---------- öğün ekleme paneli ---------- */
+let sh={meal:"kahvalti",mode:"list",q:"",cat:"",food:null,por:"",amt:1,ing:[],serv:4,eat:1,rname:"",gt:0,gp:4,gamt:1,gname:""};
+function openSheet(meal){sh.meal=meal;sh.food=null;$("#scrim").hidden=false;$("#shTitle").textContent=MEALS.find(m=>m[0]===meal)[1]+" öğününe ekle";drawSheet();setTimeout(()=>{const s=$("#q");s&&s.focus()},30)}
+function closeSheet(){$("#scrim").hidden=true}
+$("#shClose").onclick=closeSheet;$("#scrim").onclick=e=>{if(e.target.id==="scrim")closeSheet()};
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#scrim").hidden)closeSheet()});
+$("#modeTabs").onclick=e=>{const b=e.target.closest("button");if(!b)return;sh.mode=b.dataset.m;
+  document.querySelectorAll("#modeTabs button").forEach(x=>x.setAttribute("aria-selected",x===b));drawSheet()};
+const mealSel=()=>`<div class="fld"><label for="mSel">Öğün</label><select class="inp" id="mSel">${MEALS.map(([m,n])=>`<option value="${m}" ${m===sh.meal?"selected":""}>${n}</option>`).join("")}</select></div>`;
+const prev=e=>`<div class="preview"><div class="k num">${fmt(e.k)}<span class="muted" style="font-size:14px;font-weight:500"> kcal</span></div>
+  <div class="m"><span style="color:var(--pro)">P ${fmt(e.p,1)} g</span><span style="color:var(--carb)">K ${fmt(e.c,1)} g</span><span style="color:var(--fat)">Y ${fmt(e.f,1)} g</span><span style="color:var(--fib)">Lif ${fmt(e.fib,1)} g</span></div>
+  <div class="g">${esc(e.por)}</div></div>`;
+const porOpts=(f,sel)=>f.por.map(p=>`<option ${p[0]===sel?"selected":""}>${esc(p[0])}</option>`).join("")+(f.g?`<option ${sel==="g"?"selected":""}>g</option>`:"");
+function withG(f){return f.g&&!f.por.find(p=>p[0]==="g")?{...f,por:[...f.por,["g",1]]}:f}
+
+function drawSheet(){
+  const B=$("#shBody");
+  if(sh.mode==="list"){
+    const q=sh.q.toLocaleLowerCase("tr");
+    const res=FOODS.filter(f=>(!sh.cat||f.cat===sh.cat)&&(!q||f.name.toLocaleLowerCase("tr").includes(q))).slice(0,60);
+    let det="";
+    if(sh.food){const f=withG(sh.food);const e=entryFrom(f,sh.por,sh.amt);
+      det=`<div class="row"><div class="fld"><label for="amt">Miktar</label><input class="inp num" id="amt" type="number" min="0.25" step="0.25" value="${sh.amt}" inputmode="decimal"></div>
+        <div class="fld"><label for="por">Ölçü</label><select class="inp" id="por">${porOpts(sh.food,sh.por)}</select></div>${mealSel()}</div>${prev(e)}
+        <div class="foot"><button class="btn primary" id="addBtn">${esc(f.name)} ekle</button></div>`}
+    B.innerHTML=`<input class="inp" id="q" type="search" placeholder="Ara: pilav, yumurta, lahmacun…" value="${esc(sh.q)}" autocomplete="off">
+      <div class="chips"><button class="chip" data-cat="" aria-pressed="${!sh.cat}">Tümü</button>${CATS.map(c=>`<button class="chip" data-cat="${esc(c)}" aria-pressed="${sh.cat===c}">${esc(c)}</button>`).join("")}</div>
+      <ul class="results">${res.length?res.map(f=>`<li><button data-f="${f.id}" aria-pressed="${sh.food&&sh.food.id===f.id}"><span>${esc(f.name)}</span><span class="meta">${f.k} kcal/100 g · ${esc(f.por[0][0])} ${f.por[0][1]} g</span></button></li>`).join(""):`<li class="empty">Bulunamadı. <b>Tahmini</b> sekmesinden yemek türüne göre ekleyebilirsin.</li>`}</ul>${det}`;
+    const qi=$("#q");qi.oninput=e=>{sh.q=e.target.value;const pos=e.target.selectionStart;drawSheet();const n=$("#q");n.focus();n.setSelectionRange(pos,pos)};
+    B.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{sh.cat=b.dataset.cat;drawSheet()});
+    B.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{sh.food=FOODS.find(f=>f.id===b.dataset.f);sh.por=sh.food.por[0][0];sh.amt=1;drawSheet();$("#amt").focus()});
+    if(sh.food){$("#amt").oninput=e=>{sh.amt=+e.target.value||0;upd()};$("#por").onchange=e=>{sh.por=e.target.value;if(sh.por==="g")sh.amt=100;drawSheet()};$("#mSel").onchange=e=>sh.meal=e.target.value;
+      const upd=()=>{B.querySelector(".preview").outerHTML=prev(entryFrom(withG(sh.food),sh.por,sh.amt))};
+      $("#addBtn").onclick=()=>{if(sh.amt>0){day().meals[sh.meal].push(entryFrom(withG(sh.food),sh.por,sh.amt));closeSheet();render()}}}
+  }
+  else if(sh.mode==="recipe"){
+    if(!sh.ing.length)sh.ing=[{id:FOODS.find(f=>f.name==="Pirinç (çiğ)").id,amt:2,u:"su bardağı"},{id:FOODS.find(f=>f.name==="Tereyağı").id,amt:2,u:"yemek kaşığı"}];
+    const tot={k:0,p:0,c:0,f:0,fib:0};
+    sh.ing.forEach(i=>{const f=withG(FOODS.find(x=>x.id===i.id));const e=entryFrom(f,i.u,i.amt);for(const x in tot)tot[x]+=e[x]});
+    const one=x=>tot[x]/Math.max(sh.serv,1)*sh.eat;
+    const eatLbl=EAT_POR.find(e=>e[1]===sh.eat)[0];
+    const entry={name:sh.rname||"Ev yemeği",por:`${eatLbl} · tarif ${sh.serv} tabak, toplam ${fmt(tot.k)} kcal`,k:Math.round(one("k")),p:Math.round(one("p")*10)/10,c:Math.round(one("c")*10)/10,f:Math.round(one("f")*10)/10,fib:Math.round(one("fib")*10)/10,est:true};
+    const opts=CATS.map(c=>`<optgroup label="${esc(c)}">${FOODS.filter(f=>f.cat===c).map(f=>`<option value="${f.id}">${esc(f.name)}</option>`).join("")}</optgroup>`).join("");
+    B.innerHTML=`<p class="muted" style="margin:0;font-size:14px">Tencereye giren malzemeleri yaz, kaç tabak çıktığını ve ne kadar yediğini seç. Kaloriyi tarif üzerinden bölüştürür.</p>
+      <div class="fld"><label for="rname">Yemeğin adı</label><input class="inp" id="rname" placeholder="Örn. annemin pilavı" value="${esc(sh.rname)}"></div>
+      <div class="lbl">Malzemeler (bütün tencere)</div>
+      <div style="display:grid;gap:8px">${sh.ing.map((i,ix)=>{const f=FOODS.find(x=>x.id===i.id);return `<div class="ing">
+        <select class="inp" data-ix="${ix}" data-k="id" aria-label="Malzeme">${opts.replace(`value="${f.id}"`,`value="${f.id}" selected`)}</select>
+        <input class="inp num" type="number" min="0" step="0.25" value="${i.amt}" data-ix="${ix}" data-k="amt" aria-label="Miktar" inputmode="decimal">
+        <select class="inp u" data-ix="${ix}" data-k="u" aria-label="Ölçü">${porOpts(f,i.u)}</select>
+        <button class="del" data-rm="${ix}" aria-label="Malzemeyi sil">×</button></div>`}).join("")}</div>
+      <div><button class="btn sm" id="addIng">+ Malzeme ekle</button></div>
+      <div class="row"><div class="fld"><label for="serv">Tencere kaç tabak çıkardı?</label><input class="inp num" id="serv" type="number" min="1" step="1" value="${sh.serv}" inputmode="numeric"></div>
+        <div class="fld"><label for="eat">Ne kadar yedin?</label><select class="inp" id="eat">${EAT_POR.map(e=>`<option value="${e[1]}" ${e[1]===sh.eat?"selected":""}>${e[0]}</option>`).join("")}</select></div>${mealSel()}</div>
+      ${prev(entry)}<div class="foot"><button class="btn primary" id="addR">Öğüne ekle</button></div>`;
+    B.querySelectorAll("[data-ix]").forEach(el=>el.onchange=el.oninput=e=>{const i=sh.ing[+el.dataset.ix],k=el.dataset.k;
+      if(k==="id"){i.id=el.value;i.u=FOODS.find(x=>x.id===i.id).por[0][0];i.amt=1}else if(k==="amt")i.amt=+el.value||0;else i.u=el.value;
+      if(e.type==="change"||k!=="amt")drawSheet();else{const n=B.querySelector(`[data-ix="${el.dataset.ix}"][data-k="amt"]`);}});
+    B.querySelectorAll("[data-ix][data-k=amt]").forEach(el=>{el.oninput=null;el.onchange=()=>{sh.ing[+el.dataset.ix].amt=+el.value||0;drawSheet()}});
+    B.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{sh.ing.splice(+b.dataset.rm,1);if(!sh.ing.length)sh.ing.push({id:FOODS[0].id,amt:1,u:FOODS[0].por[0][0]});drawSheet()});
+    $("#addIng").onclick=()=>{const f=FOODS.find(x=>x.name==="Soğan");sh.ing.push({id:f.id,amt:1,u:f.por[0][0]});drawSheet()};
+    $("#rname").oninput=e=>sh.rname=e.target.value;
+    $("#serv").onchange=e=>{sh.serv=Math.max(1,+e.target.value||1);drawSheet()};
+    $("#eat").onchange=e=>{sh.eat=+e.target.value;drawSheet()};$("#mSel").onchange=e=>sh.meal=e.target.value;
+    $("#addR").onclick=()=>{day().meals[sh.meal].push(entry);closeSheet();render()};
+  }
+  else{
+    const g=GUESS[sh.gt], gr=GUESS_POR[sh.gp][1]*sh.gamt, fac=gr/100, r=x=>Math.round(x*10)/10;
+    const entry={name:sh.gname||g[0],por:`${fmt(sh.gamt,2)} × ${GUESS_POR[sh.gp][0]} · ~${Math.round(gr)} g (${g[0].toLowerCase()})`,k:Math.round(g[1]*fac),p:r(g[2]*fac),c:r(g[3]*fac),f:r(g[4]*fac),fib:r(g[5]*fac),est:true};
+    B.innerHTML=`<p class="muted" style="margin:0;font-size:14px">Listede olmayan ya da miktarını bilmediğin yemekler için: türünü ve gözünle gördüğün porsiyonu seç, ortalama değerlerle tahmin edilir.</p>
+      <div class="fld"><label for="gname">Ne yedin?</label><input class="inp" id="gname" placeholder="Örn. bamya, kadayıf, tavuk wrap" value="${esc(sh.gname)}"></div>
+      <div class="fld"><label>Yemeğin türü</label><div class="chips" id="gtype">${GUESS.map((x,i)=>`<button class="chip" data-i="${i}" aria-pressed="${i===sh.gt}">${esc(x[0])}</button>`).join("")}</div></div>
+      <div class="fld"><label>Porsiyon</label><div class="chips" id="gpor">${GUESS_POR.map((x,i)=>`<button class="chip" data-i="${i}" aria-pressed="${i===sh.gp}">${esc(x[0])}</button>`).join("")}</div></div>
+      <div class="row"><div class="fld"><label for="gamt">Kaç tane?</label><input class="inp num" id="gamt" type="number" min="0.5" step="0.5" value="${sh.gamt}" inputmode="decimal"></div>${mealSel()}</div>
+      ${prev(entry)}<div class="foot"><button class="btn primary" id="addG">Öğüne ekle</button></div>`;
+    $("#gname").oninput=e=>sh.gname=e.target.value;
+    $("#gtype").onclick=e=>{const b=e.target.closest("button");if(b){sh.gt=+b.dataset.i;drawSheet()}};
+    $("#gpor").onclick=e=>{const b=e.target.closest("button");if(b){sh.gp=+b.dataset.i;drawSheet()}};
+    $("#gamt").onchange=e=>{sh.gamt=Math.max(0.5,+e.target.value||1);drawSheet()};$("#mSel").onchange=e=>sh.meal=e.target.value;
+    $("#addG").onclick=()=>{day().meals[sh.meal].push(entry);closeSheet();render()};
+  }
+}
+/* ================= SPOR ================= */
+/* tür: s = ağırlık (kg × tekrar), bw = vücut ağırlığı (tekrar, ek kg), t = süreli tutuş (sn), c = kardiyo (dk, km), d = drill (set × m) ; MET */
+const EXR=`
+Göğüs|Bench press (halter)|s|5
+Göğüs|Eğimli bench press|s|5
+Göğüs|Declined bench press|s|5
+Göğüs|Dumbbell press|s|5
+Göğüs|Eğimli dumbbell press|s|5
+Göğüs|Dumbbell fly|s|4
+Göğüs|Cable crossover|s|4
+Göğüs|Chest press makinesi|s|4
+Göğüs|Pec deck|s|4
+Göğüs|Dips|bw|5
+Göğüs|Şınav|bw|4
+Göğüs|Eğimli şınav|bw|4
+Sırt|Deadlift|s|6
+Sırt|Barfiks|bw|6
+Sırt|Chin-up|bw|6
+Sırt|Lat pulldown|s|4.5
+Sırt|Barbell row|s|5
+Sırt|Dumbbell row|s|5
+Sırt|Seated cable row|s|4.5
+Sırt|T-bar row|s|5
+Sırt|Pullover|s|4
+Sırt|Face pull|s|4
+Sırt|Inverted row|bw|5
+Sırt|Hiperekstansiyon|bw|3.5
+Bacak|Squat (halter)|s|6
+Bacak|Front squat|s|6
+Bacak|Goblet squat|s|5
+Bacak|Leg press|s|5
+Bacak|Hack squat|s|5.5
+Bacak|Romanian deadlift|s|5.5
+Bacak|Bulgarian split squat|s|5.5
+Bacak|Yürüyen lunge|s|5
+Bacak|Step-up|s|5
+Bacak|Hip thrust|s|5
+Bacak|Leg extension|s|4
+Bacak|Leg curl|s|4
+Bacak|Calf raise|s|3.5
+Bacak|Hip abduction makinesi|s|3.5
+Bacak|Pistol squat|bw|6
+Bacak|Wall sit|t|4
+Omuz|Overhead press (halter)|s|5
+Omuz|Dumbbell shoulder press|s|5
+Omuz|Arnold press|s|5
+Omuz|Lateral raise|s|3.5
+Omuz|Front raise|s|3.5
+Omuz|Rear delt fly|s|3.5
+Omuz|Upright row|s|4
+Omuz|Shrug|s|3.5
+Omuz|Pike şınav|bw|4.5
+Kol|Barbell curl|s|3.5
+Kol|Dumbbell curl|s|3.5
+Kol|Hammer curl|s|3.5
+Kol|Preacher curl|s|3.5
+Kol|Cable curl|s|3.5
+Kol|Triceps pushdown|s|3.5
+Kol|Skull crusher|s|3.5
+Kol|Overhead triceps extension|s|3.5
+Kol|Close-grip bench press|s|5
+Kol|Bench dips|bw|4
+Karın & core|Plank|t|3.8
+Karın & core|Side plank|t|3.8
+Karın & core|Hollow hold|t|3.8
+Karın & core|Crunch|bw|3.8
+Karın & core|Bacak kaldırma (asılı)|bw|4
+Karın & core|Bacak kaldırma (yerde)|bw|3.8
+Karın & core|Russian twist|bw|3.8
+Karın & core|Ab wheel|bw|4
+Karın & core|Cable crunch|s|3.8
+Karın & core|Dead bug|bw|3
+Karın & core|Bicycle crunch|bw|3.8
+Karın & core|Pallof press|s|3.5
+Fonksiyonel|Burpee|bw|8
+Fonksiyonel|Mountain climber|bw|8
+Fonksiyonel|Jumping jack|bw|7
+Fonksiyonel|Box jump|bw|8
+Fonksiyonel|Jump squat|bw|8
+Fonksiyonel|Kettlebell swing|s|9
+Fonksiyonel|Kettlebell goblet squat|s|5
+Fonksiyonel|Turkish get-up|s|5
+Fonksiyonel|Farmer's walk|s|6
+Fonksiyonel|Wall ball|s|7
+Fonksiyonel|Thruster|s|7
+Fonksiyonel|Power clean|s|6
+Fonksiyonel|Sled push|s|8
+Fonksiyonel|Battle rope|c|8
+Fonksiyonel|İp atlama|c|11
+Kardiyo|Koşu (açık hava)|c|9.8
+Kardiyo|Koşu bandı|c|9.8
+Kardiyo|Tempo koşu|c|11
+Kardiyo|İnterval koşu|c|11
+Kardiyo|Uzun koşu|c|9
+Kardiyo|Fartlek|c|10
+Kardiyo|Trail koşu|c|10
+Kardiyo|Yürüyüş|c|3.5
+Kardiyo|Tempolu yürüyüş|c|5
+Kardiyo|Eğimli yürüyüş (bant)|c|6.5
+Kardiyo|Bisiklet (yol)|c|7.5
+Kardiyo|Spinning|c|8.5
+Kardiyo|Eliptik|c|5
+Kardiyo|Kürek makinesi|c|7
+Kardiyo|Merdiven makinesi|c|9
+Kardiyo|Yüzme|c|7
+Kardiyo|HIIT|c|8
+Spor dalı|Futbol|c|7
+Spor dalı|Basketbol|c|6.5
+Spor dalı|Voleybol|c|4
+Spor dalı|Tenis|c|7.3
+Spor dalı|Padel|c|6
+Spor dalı|Boks / kick boks|c|7.8
+Spor dalı|Dövüş sporları|c|10
+Spor dalı|Tırmanış|c|8
+Spor dalı|Dans|c|5
+Esneklik|Yoga|c|2.5
+Esneklik|Pilates|c|3
+Esneklik|Esneme / mobilite|c|2.3
+Esneklik|Foam roller|c|2
+Koşu drilleri|A-skip|d|8
+Koşu drilleri|B-skip|d|8
+Koşu drilleri|C-skip|d|8
+Koşu drilleri|Power skip|d|9
+Koşu drilleri|High knees|d|8
+Koşu drilleri|Butt kicks|d|8
+Koşu drilleri|Ankling|d|6
+Koşu drilleri|Düz bacak koşusu|d|8
+Koşu drilleri|Karioka|d|7
+Koşu drilleri|Lateral shuffle|d|7
+Koşu drilleri|Geri geri koşu|d|7
+Koşu drilleri|Bounding|d|9
+Koşu drilleri|Tek ayak sekme|d|9
+Koşu drilleri|Fast feet|d|8
+Koşu drilleri|Agility merdiveni|d|8
+Koşu drilleri|Strides (açılma)|d|10
+Koşu drilleri|Sprint|d|12
+Koşu drilleri|Tepe sprinti|d|11
+Koşu drilleri|Uçan 30 m|d|12
+Koşu drilleri|Mekik koşusu (shuttle)|d|10
+Koşu drilleri|Çömelmiş start|d|10
+`;
+const EXS=EXR.trim().split("\n").map((l,i)=>{const [cat,name,t,met]=l.split("|");return {id:"x"+i,cat,name,t,met:+met}});
+const XCATS=[...new Set(EXS.map(e=>e.cat))];
+const exBy=n=>EXS.find(e=>e.name===n)||{name:n,cat:"",t:"s",met:5};
+const THINT={s:"kg × tekrar",bw:"tekrar · ek ağırlık isteğe bağlı",t:"saniye",c:"süre · mesafe",d:"set × mesafe"};
+const isRun=ex=>/Koşu|koşu|Fartlek/.test(ex.name)&&ex.t==="c";
+
+function woDur(w){
+  if(+w.dur)return +w.dur;
+  const n=w.sets?w.sets.length:0;
+  if(w.t==="s"||w.t==="bw")return n*2.5;
+  if(w.t==="t")return w.sets.reduce((a,s)=>a+(+s.s||0),0)/60+n*0.75;
+  if(w.t==="d")return Math.max(1,(+w.n||0)*Math.max(0.75,(+w.dist||0)/150));
+  return 0;
+}
+function woMet(w){const ex=exBy(w.ex);const d=woDur(w);
+  if(isRun(ex)&&+w.dist&&d){const v=+w.dist/(d/60);return Math.max(6,Math.min(19,1.02*v))}return ex.met}
+function woKcal(w,date){return Math.round(woMet(w)*latestWeight(date)*woDur(w)/60)}
+function dayWoKcal(d){return (day(d).wo||[]).reduce((a,w)=>a+woKcal(w,d),0)}
+const vol=w=>(w.t==="s"||(w.t==="bw"&&w.sets))?w.sets.reduce((a,s)=>a+((w.t==="bw"?(+s.w||0)+0:+s.w||0))*(+s.r||0),0):0;
+const pace=(dur,dist)=>{const p=dur/dist;const m=Math.floor(p),s=Math.round((p-m)*60);return `${m}:${pad(s===60?0:s)}/km`};
+function woText(w){
+  if(w.t==="s")return w.sets.map(s=>`${fmt(+s.w,1)}×${+s.r||0}`).join("  ")+" kg×tekrar";
+  if(w.t==="bw")return w.sets.map(s=>`${+s.r||0}${+s.w?` (+${fmt(+s.w,1)} kg)`:""}`).join(", ")+" tekrar";
+  if(w.t==="t")return w.sets.map(s=>`${+s.s||0} sn`).join(", ");
+  if(w.t==="c")return [w.dur?`${fmt(+w.dur)} dk`:"",+w.dist?`${fmt(+w.dist,2)} km`:"",isRun(exBy(w.ex))&&+w.dist&&+w.dur?pace(+w.dur,+w.dist):""].filter(Boolean).join(" · ");
+  if(w.t==="d")return `${+w.n||0} × ${fmt(+w.dist||0)} m`+(w.dur?` · ${fmt(+w.dur)} dk`:"");
+}
+function metric(w){
+  const mx=a=>a.length?Math.max(...a):0;
+  if(w.t==="s")return {v:mx(w.sets.map(s=>+s.w||0)),u:"kg",lbl:"En ağır set",one:mx(w.sets.map(s=>(+s.w||0)*(1+(+s.r||0)/30)))};
+  if(w.t==="bw")return {v:mx(w.sets.map(s=>+s.r||0)),u:"tekrar",lbl:"Tek sette en çok tekrar"};
+  if(w.t==="t")return {v:mx(w.sets.map(s=>+s.s||0)),u:"sn",lbl:"En uzun tutuş"};
+  if(w.t==="c"){if(isRun(exBy(w.ex))&&+w.dist&&+w.dur)return {v:+w.dist,u:"km",lbl:"Mesafe",pace:+w.dur/+w.dist};
+    return +w.dist?{v:+w.dist,u:"km",lbl:"Mesafe"}:{v:+w.dur||0,u:"dk",lbl:"Süre"}}
+  return {v:(+w.n||0)*(+w.dist||0),u:"m",lbl:"Toplam mesafe"};
+}
+function history(name){
+  const out=[];
+  for(const d of Object.keys(S.days).sort())for(const w of (S.days[d].wo||[]))if(w.ex===name)out.push({d,w,m:metric(w)});
+  // aynı gün birden fazla kayıt → en iyisi
+  const by={};for(const h of out){if(!by[h.d]||h.m.v>by[h.d].m.v)by[h.d]=h}
+  return Object.values(by).sort((a,b)=>a.d<b.d?-1:1);
+}
+function monday(ds){const d=new Date(ds+"T12:00:00");d.setDate(d.getDate()-((d.getDay()+6)%7));return ymd(d)}
+function addDays(ds,n){const d=new Date(ds+"T12:00:00");d.setDate(d.getDate()+n);return ymd(d)}
+function weekStats(mon){
+  const r={days:0,sets:0,vol:0,km:0,kcal:0,min:0};
+  for(let i=0;i<7;i++){const d=addDays(mon,i);const D=S.days[d];if(!D||!D.wo||!D.wo.length)continue;r.days++;
+    for(const w of D.wo){r.sets+=w.sets?w.sets.length:(+w.n||0);r.vol+=vol(w);if(w.t==="c"&&+w.dist)r.km+=+w.dist;if(w.t==="d")r.km+=(+w.n||0)*(+w.dist||0)/1000;r.kcal+=woKcal(w,d);r.min+=woDur(w)}}
+  return r;
+}
+const shortDate=ds=>new Date(ds+"T12:00:00").toLocaleDateString("tr-TR",{day:"numeric",month:"short"});
+
+function niceStep(x){const p=10**Math.floor(Math.log10(x||1));const f=x/p;return (f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*p}
+function lineChart(pts,unit,dec=1){
+  const W=560,H=210,L=46,R=18,T=18,B=30;
+  const vs=pts.map(p=>p.v);let lo=Math.min(...vs),hi=Math.max(...vs);if(lo===hi){lo=lo*0.9;hi=hi*1.1||1}
+  const step=niceStep((hi-lo)/3);lo=Math.floor(lo/step)*step;hi=Math.ceil(hi/step)*step;if(hi===lo)hi=lo+step;
+  const t=p=>new Date(p.d+"T12:00:00").getTime();const t0=t(pts[0]),t1=t(pts[pts.length-1]);
+  const X=p=>pts.length===1?(L+W-R)/2:L+(t(p)-t0)/(t1-t0)*(W-L-R);
+  const Y=v=>T+(1-(v-lo)/(hi-lo))*(H-T-B);
+  let g="";for(let v=lo;v<=hi+1e-9;v+=step){g+=`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L-8}" y="${Y(v)+4}" text-anchor="end">${fmt(v,dec)}</text>`}
+  const line=pts.map((p,i)=>`${i?"L":"M"}${X(p).toFixed(1)},${Y(p.v).toFixed(1)}`).join("");
+  const area=pts.length>1?`<path d="${line}L${X(pts[pts.length-1])},${H-B}L${X(pts[0])},${H-B}Z" fill="var(--accent)" opacity=".1"/>`:"";
+  const idx=[...new Set([0,Math.floor((pts.length-1)/2),pts.length-1])];
+  const xl=idx.map(i=>`<text x="${X(pts[i])}" y="${H-8}" text-anchor="${pts.length===1?"middle":i===0?"start":i===pts.length-1?"end":"middle"}">${shortDate(pts[i].d)}</text>`).join("");
+  const last=pts[pts.length-1];
+  const dots=pts.map((p,i)=>`<circle cx="${X(p)}" cy="${Y(p.v)}" r="${i===pts.length-1?5:3}" fill="${i===pts.length-1?"var(--accent)":"var(--surface)"}" stroke="var(--accent)" stroke-width="2"/>`).join("");
+  return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="İlerleme grafiği">${g}${area}<path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>${dots}
+    <text x="${Math.min(X(last),W-R-4)}" y="${Math.max(Y(last.v)-12,12)}" text-anchor="end" style="fill:var(--ink);font-weight:500">${fmt(last.v,dec)} ${unit}</text>${xl}</svg></div>`;
+}
+
+let X={q:"",cat:"",ex:null,sets:[],dur:"",dist:"",n:"",note:""};
+let pSel=null;
+function lastSession(name){const ds=Object.keys(S.days).filter(d=>d<cur||(d===cur)).sort().reverse();
+  for(const d of ds){const w=(S.days[d].wo||[]).filter(w=>w.ex===name);if(w.length)return {d,w:w[w.length-1]}}return null}
+function pickEx(ex){
+  X={...X,ex,note:"",dur:"",dist:"",n:""};
+  const ls=lastSession(ex.name);
+  if(ex.t==="s"||ex.t==="bw")X.sets=ls&&ls.w.sets?ls.w.sets.map(s=>({w:s.w,r:s.r})):[{w:"",r:""},{w:"",r:""},{w:"",r:""}];
+  else if(ex.t==="t")X.sets=ls&&ls.w.sets?ls.w.sets.map(s=>({s:s.s})):[{s:30},{s:30},{s:30}];
+  else if(ex.t==="c"){X.dur=ls?ls.w.dur:"";X.dist=ls?ls.w.dist:""}
+  else {X.n=ls?ls.w.n:4;X.dist=ls?ls.w.dist:30}
+  X.last=ls;
+}
+function draftEntry(){const e={ex:X.ex.name,t:X.ex.t,note:X.note.trim()};
+  if(X.sets&&["s","bw","t"].includes(X.ex.t))e.sets=X.sets.filter(s=>X.ex.t==="t"?+s.s>0:+s.r>0).map(s=>X.ex.t==="t"?{s:+s.s}:{w:+s.w||0,r:+s.r});
+  if(+X.dur)e.dur=+X.dur;if(+X.dist)e.dist=+X.dist;if(X.ex.t==="d")e.n=+X.n||0;return e}
+
+function drawWoAdd(){
+  const B=$("#woAdd");
+  if(!X.ex){
+    const q=X.q.toLocaleLowerCase("tr");
+    const res=EXS.filter(e=>(!X.cat||e.cat===X.cat)&&(!q||e.name.toLocaleLowerCase("tr").includes(q)));
+    B.innerHTML=`<h2>Hareket ekle</h2><div style="display:grid;gap:12px">
+      <input class="inp" id="xq" type="search" placeholder="Ara: squat, A-skip, yüzme… (${EXS.length} hareket)" value="${esc(X.q)}" autocomplete="off">
+      <div class="chips"><button class="chip" data-xc="" aria-pressed="${!X.cat}">Tümü</button>${XCATS.map(c=>`<button class="chip" data-xc="${esc(c)}" aria-pressed="${X.cat===c}">${esc(c)}</button>`).join("")}</div>
+      <ul class="results">${res.length?res.map(e=>`<li><button data-x="${e.id}"><span>${esc(e.name)}</span><span class="meta">${esc(e.cat)} · ${THINT[e.t]}</span></button></li>`).join(""):`<li class="empty">Bulunamadı.</li>`}</ul></div>`;
+    const qi=$("#xq");qi.oninput=e=>{X.q=e.target.value;const p=e.target.selectionStart;drawWoAdd();const n=$("#xq");n.focus();n.setSelectionRange(p,p)};
+    B.querySelectorAll("[data-xc]").forEach(b=>b.onclick=()=>{X.cat=b.dataset.xc;drawWoAdd()});
+    B.querySelectorAll("[data-x]").forEach(b=>b.onclick=()=>{pickEx(EXS.find(e=>e.id===b.dataset.x));drawWoAdd()});
+    return;
+  }
+  const ex=X.ex,t=ex.t;
+  let f="";
+  if(t==="s"||t==="bw"||t==="t"){
+    const head=t==="t"?`<span></span><span class="lbl">Süre (sn)</span><span></span>`:`<span></span><span class="lbl">${t==="bw"?"Ek kg":"Kg"}</span><span class="lbl">Tekrar</span>`;
+    f=`<div class="setrows"><div class="setrow">${head}<span></span></div>${X.sets.map((s,i)=>`<div class="setrow"><span class="sn">Set ${i+1}</span>
+      ${t==="t"?`<input class="inp num" type="number" min="0" step="5" value="${s.s??""}" data-si="${i}" data-sk="s" aria-label="Set ${i+1} süre" inputmode="numeric"><span></span>`:
+      `<input class="inp num" type="number" min="0" step="0.5" value="${s.w??""}" data-si="${i}" data-sk="w" aria-label="Set ${i+1} kg" inputmode="decimal" placeholder="${t==="bw"?"0":""}">
+       <input class="inp num" type="number" min="0" step="1" value="${s.r??""}" data-si="${i}" data-sk="r" aria-label="Set ${i+1} tekrar" inputmode="numeric">`}
+      <button class="del" data-sd="${i}" aria-label="Seti sil">×</button></div>`).join("")}</div>
+      <div><button class="btn sm" id="addSet">+ Set ekle</button></div>
+      <div class="fld"><label for="xdur">Toplam süre (dk, isteğe bağlı)</label><input class="inp num" id="xdur" type="number" min="0" value="${X.dur}" placeholder="Boş bırakırsan set başına 2,5 dk sayılır" inputmode="numeric"></div>`;
+  }else if(t==="c"){
+    f=`<div class="row"><div class="fld"><label for="xdur">Süre (dk)</label><input class="inp num" id="xdur" type="number" min="0" value="${X.dur}" inputmode="numeric"></div>
+      <div class="fld"><label for="xdist">Mesafe (km)</label><input class="inp num" id="xdist" type="number" min="0" step="0.1" value="${X.dist}" placeholder="isteğe bağlı" inputmode="decimal"></div></div>`;
+  }else{
+    f=`<div class="row"><div class="fld"><label for="xn">Set / tekrar</label><input class="inp num" id="xn" type="number" min="1" value="${X.n}" inputmode="numeric"></div>
+      <div class="fld"><label for="xdist">Mesafe (m)</label><input class="inp num" id="xdist" type="number" min="0" step="5" value="${X.dist}" inputmode="numeric"></div>
+      <div class="fld"><label for="xdur">Süre (dk)</label><input class="inp num" id="xdur" type="number" min="0" value="${X.dur}" placeholder="tahmin" inputmode="numeric"></div></div>`;
+  }
+  B.innerHTML=`<div class="mhead"><div><div class="xtype">${esc(ex.cat)} · ${THINT[t]}</div><h2 style="margin:2px 0 0">${esc(ex.name)}</h2></div><button class="btn sm ghost" id="xBack">Hareketi değiştir</button></div>
+    <div style="display:grid;gap:12px;margin-top:12px">
+    ${X.last?`<div class="last">Son sefer (${shortDate(X.last.d)}): <b>${esc(woText(X.last.w))}</b>${X.last.w.note?` — <i>${esc(X.last.w.note)}</i>`:""}<br><span class="muted">Değerler son seferden dolduruldu; ilerlediysen artır.</span></div>`:""}
+    ${f}
+    <div class="fld"><label for="xnote">Not</label><input class="inp" id="xnote" value="${esc(X.note)}" placeholder="Örn. form iyiydi, son set zorladı, bant 1. kademe"></div>
+    <div class="preview" id="xPrev"></div>
+    <div class="foot"><button class="btn primary" id="xAdd">Antrenmana ekle</button></div></div>`;
+  const upd=()=>{const e=draftEntry();const m=metric(e);
+    $("#xPrev").innerHTML=`<div class="k num">${fmt(woKcal(e,cur))}<span class="muted" style="font-size:14px;font-weight:500"> kcal</span></div>
+      <div class="m"><span>${fmt(woDur(e))} dk</span>${vol(e)?`<span>Hacim ${fmt(vol(e))} kg</span>`:""}${m.one?`<span>Tahmini 1TM ${fmt(m.one,1)} kg</span>`:""}${m.pace?`<span>${pace(+e.dur,+e.dist)}</span>`:""}</div>
+      <div class="g">${fmt(latestWeight(cur),1)} kg vücut ağırlığına ve hareketin yoğunluğuna (MET ${fmt(woMet(e),1)}) göre hesaplandı.</div>`};
+  upd();
+  B.querySelectorAll("[data-si]").forEach(el=>el.oninput=()=>{X.sets[+el.dataset.si][el.dataset.sk]=el.value;upd()});
+  B.querySelectorAll("[data-sd]").forEach(b=>b.onclick=()=>{X.sets.splice(+b.dataset.sd,1);drawWoAdd()});
+  const ab=$("#addSet");if(ab)ab.onclick=()=>{const l=X.sets[X.sets.length-1];X.sets.push(l?{...l}:(t==="t"?{s:30}:{w:"",r:""}));drawWoAdd()};
+  for(const [id,k] of [["#xdur","dur"],["#xdist","dist"],["#xn","n"]]){const el=$(id);if(el)el.oninput=()=>{X[k]=el.value;upd()}}
+  $("#xnote").oninput=e=>X.note=e.target.value;
+  $("#xBack").onclick=()=>{X.ex=null;drawWoAdd()};
+  $("#xAdd").onclick=()=>{const e=draftEntry();
+    if((e.sets&&!e.sets.length)||(t==="c"&&!e.dur)||(t==="d"&&!e.n)){$("#xPrev").insertAdjacentHTML("beforeend",`<div class="g" style="color:var(--bad)">${t==="c"?"Süreyi gir.":"En az bir set için tekrar ya da süre gir."}</div>`);return}
+    e.id=Date.now();day().wo.push(e);pSel=e.ex;X.ex=null;render()};
+}
+
+function renderSpor(){
+  // haftalık şerit
+  const mon=monday(cur),a=weekStats(mon),b=weekStats(addDays(mon,-7));
+  const dl=(x,y,dec=0,u="")=>`<span class="delta ${x>=y&&x?"up":"muted"}">Geçen hafta ${fmt(y,dec)}${u}</span>`;
+  $("#wkStrip").innerHTML=[
+    ["Bu hafta antrenman",a.days,"gün",dl(a.days,b.days)],
+    ["Toplam set",a.sets,"",dl(a.sets,b.sets)],
+    ["Kaldırılan hacim",a.vol>=1000?a.vol/1000:a.vol,a.vol>=1000?"ton":"kg",dl(a.vol/1000,b.vol/1000,1," ton")],
+    ["Koşu + drill",a.km,"km",dl(a.km,b.km,1)],
+    ["Sporla yakılan",a.kcal,"kcal",dl(a.kcal,b.kcal)]
+  ].map(([l,v,u,d],i)=>`<div class="wk"><div class="lbl">${l}</div><div class="v num">${fmt(v,i===2||i===3?1:0)}<small>${u}</small></div>${d}</div>`).join("");
+
+  // günün listesi
+  const D=day();const tk=dayWoKcal(cur);
+  $("#woTot").textContent=D.wo.length?`${fmt(tk)} kcal · ${fmt(D.wo.reduce((x,w)=>x+woDur(w),0))} dk`:"";
+  $("#woList").innerHTML=D.wo.length?D.wo.map((w,i)=>{const ls=history(w.ex).filter(h=>h.d<cur).pop();const m=metric(w);
+      let delta="";if(ls){const d=m.v-ls.m.v;if(d)delta=` <span class="delta ${d>0?"up":"down"}">${d>0?"+":"−"}${fmt(Math.abs(d),1)} ${m.u}</span>`}
+      return `<li class="item"><div class="n"><button class="linkbtn" data-p="${esc(w.ex)}" style="all:unset;cursor:pointer;font-weight:600">${esc(w.ex)}</button>${w.sample?'<span class="tag">örnek</span>':""}${delta}</div>
+      <div class="k">${fmt(woKcal(w,cur))} kcal</div><button class="del" data-wd="${i}" aria-label="Sil">×</button>
+      <div class="sets">${esc(woText(w))}</div>${w.note?`<div class="note">${esc(w.note)}</div>`:""}</li>`}).join("")
+    :`<li class="empty">Bu gün için antrenman yok. Aşağıdan hareket seç.</li>`;
+  $("#woList").onclick=e=>{const d=e.target.closest("[data-wd]"),p=e.target.closest("[data-p]");
+    if(d){D.wo.splice(+d.dataset.wd,1);render()} if(p){pSel=p.dataset.p;renderSpor()}};
+
+  drawWoAdd();
+
+  // ilerleme
+  const names={};for(const d of Object.keys(S.days))for(const w of (S.days[d].wo||[]))names[w.ex]=names[w.ex]&&names[w.ex]>d?names[w.ex]:d;
+  const list=Object.keys(names).sort((x,y)=>names[y].localeCompare(names[x]));
+  const P=$("#progress");
+  if(!list.length){P.innerHTML=`<h2>İlerleme</h2><p class="muted" style="margin:0">Bir hareketi en az bir kez kaydedince ağırlık ve tekrar gelişimin burada çizilir.</p>`;}
+  else{
+    if(!pSel||!names[pSel])pSel=list.find(n=>exBy(n).t==="s")||list[0];
+    const H=history(pSel),ex=exBy(pSel),u=H[H.length-1].m.u,lbl=H[H.length-1].m.lbl;
+    const isPace=H.every(h=>h.m.pace);
+    const first=H[0].m.v,last=H[H.length-1].m.v,best=Math.max(...H.map(h=>h.m.v));
+    // haftalık en iyiler
+    const wk={};for(const h of H){const k=monday(h.d);if(!wk[k]||h.m.v>wk[k])wk[k]=h.m.v}
+    const wks=Object.keys(wk).sort();const wdelta=wks.length>1?(wk[wks[wks.length-1]]-wk[wks[0]])/(wks.length-1):null;
+    P.innerHTML=`<div class="mhead"><h2 style="margin:0">İlerleme</h2><select class="inp" id="pSel" style="width:auto;max-width:100%">${list.map(n=>`<option ${n===pSel?"selected":""}>${esc(n)}</option>`).join("")}</select></div>
+      <div class="muted" style="font-size:13px;margin:6px 0 10px">${lbl} · ${H.length} seans</div>
+      <div class="stats3">
+        <div><div class="lbl">İlk → son</div><div class="v num">${fmt(first,1)} → ${fmt(last,1)}</div><span class="delta ${last>=first?"up":"down"}">${last>=first?"+":"−"}${fmt(Math.abs(last-first),1)} ${u}</span></div>
+        <div><div class="lbl">Rekor</div><div class="v num">${fmt(best,1)} <small class="muted" style="font-size:13px">${u}</small></div>${ex.t==="s"?`<span class="delta muted">Tah. 1TM ${fmt(Math.max(...H.map(h=>h.m.one)),1)} kg</span>`:""}</div>
+        <div><div class="lbl">Haftalık ort. artış</div><div class="v num">${wdelta==null?"—":(wdelta>=0?"+":"−")+fmt(Math.abs(wdelta),1)}</div><span class="delta muted">${wdelta==null?"1 haftadan fazla veri gerekli":u+" / hafta"}</span></div>
+      </div>
+      ${lineChart(H.map(h=>({d:h.d,v:h.m.v})),u)}
+      ${isPace&&H.length>1?`<div class="muted" style="font-size:13px;margin-top:6px">Tempo: ${pace(H[0].m.pace,1)} → <b style="color:var(--ink)">${pace(H[H.length-1].m.pace,1)}</b></div>`:""}
+      <div class="tblwrap" style="margin-top:14px"><table class="t"><thead><tr><th>Tarih</th><th>Yapılan</th><th class="n">${u}</th><th class="n">Fark</th></tr></thead><tbody>
+      ${H.slice().reverse().slice(0,12).map((h,i,arr)=>{const prev=arr[i+1];const d=prev?h.m.v-prev.m.v:null;
+        return `<tr><td class="num" style="white-space:nowrap">${shortDate(h.d)}</td><td>${esc(woText(h.w))}${h.w.note?`<div class="muted" style="font-size:12px;font-style:italic">${esc(h.w.note)}</div>`:""}</td><td class="n">${fmt(h.m.v,1)}</td>
+        <td class="n">${d==null?"—":d===0?"=":`<span class="${d>0?"up":"down"}">${d>0?"+":"−"}${fmt(Math.abs(d),1)}</span>`}</td></tr>`}).join("")}</tbody></table></div>`;
+    $("#pSel").onchange=e=>{pSel=e.target.value;renderSpor()};
+  }
+
+  // haftalık tablo
+  const rows=[];for(let i=0;i<6;i++){const m=addDays(mon,-7*i);rows.push([m,weekStats(m)])}
+  const maxK=Math.max(1,...rows.map(r=>r[1].kcal));
+  $("#weekly").innerHTML=`<table class="t"><thead><tr><th>Hafta</th><th class="n">Gün</th><th class="n">Set</th><th class="n">Hacim</th><th class="n">Km</th><th class="n">Kcal</th></tr></thead><tbody>
+    ${rows.map(([m,r])=>`<tr><td style="white-space:nowrap">${shortDate(m)} – ${shortDate(addDays(m,6))}${m===monday(TODAY)?' <span class="tag">bu hafta</span>':""}</td>
+      <td class="n">${r.days}</td><td class="n">${r.sets}</td><td class="n">${r.vol?fmt(r.vol)+" kg":"—"}</td><td class="n">${r.km?fmt(r.km,1):"—"}</td>
+      <td class="n">${fmt(r.kcal)}<div class="hbar" style="width:${r.kcal/maxK*100}%;margin-left:auto"></div></td></tr>`).join("")}</tbody></table>`;
+}
+
+/* örnek antrenman geçmişi (son 4 hafta) */
+function sampleWorkouts(){
+  const base=new Date(TODAY+"T12:00:00");
+  for(let back=27;back>=0;back--){
+    const d=new Date(base);d.setDate(d.getDate()-back);const k=ymd(d),dow=d.getDay(),wk=Math.floor((27-back)/7);
+    const L=[];
+    if(dow===1||dow===4){const b=60+wk*2.5,sq=80+wk*5,row=55+wk*2.5;
+      L.push({ex:"Bench press (halter)",t:"s",sets:[{w:b,r:8},{w:b,r:8},{w:b,r:7}],note:wk===3&&dow===1?"Son set zorladı, bir dahaki sefere aynı kiloda kal":""});
+      L.push({ex:"Squat (halter)",t:"s",sets:[{w:sq,r:6},{w:sq,r:6},{w:sq,r:5}]});
+      L.push({ex:"Barbell row",t:"s",sets:[{w:row,r:10},{w:row,r:10},{w:row,r:9}]});
+      L.push({ex:"Plank",t:"t",sets:[{s:45+wk*10},{s:40+wk*10}]});}
+    if(dow===2||dow===6){L.push({ex:"Koşu (açık hava)",t:"c",dur:Math.round(33-wk*1.3),dist:5});
+      L.push({ex:"A-skip",t:"d",n:4,dist:30},{ex:"Strides (açılma)",t:"d",n:6,dist:80});}
+    if(dow===0)L.push({ex:"Barfiks",t:"bw",sets:[{w:0,r:5+wk},{w:0,r:4+wk},{w:0,r:4+wk}]});
+    if(L.length){const D=day(k);D.wo.push(...L.map((x,i)=>({...x,id:k+i,sample:true})))}
+  }
+}
+if(fresh||(S.v!==2&&S.sample)){sampleWorkouts()}
+S.v=2;
+render();
+</script>
