@@ -1,4 +1,15 @@
+<!doctype html>
+<html lang="tr">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Kalori Defteri</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2C5B4D">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Kalori">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -197,6 +208,17 @@ table.t td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:to
 table.t td.n{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
 table.t th.n{text-align:right}
 table.t tr:last-child td{border-bottom:0}
+.plan{border:1px solid var(--accent);background:var(--accent-soft);border-radius:12px;padding:12px 14px;display:grid;gap:10px}
+.plan h3{font-size:17px}
+.planlist{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.planlist button{width:100%;text-align:left;border:0;background:transparent;padding:7px 8px;border-radius:8px;display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:10px;align-items:center}
+.planlist button:hover{background:var(--surface)}
+.planlist .ck{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-family:var(--f-mono);border:1.5px solid var(--accent);color:var(--accent)}
+.planlist button[aria-pressed="true"] .ck{background:var(--accent);color:var(--accent-ink)}
+.planlist button[aria-pressed="true"] span:nth-child(2){color:var(--muted);text-decoration:line-through}
+.planlist .meta,.tplitems .meta{font-family:var(--f-mono);font-size:12px;color:var(--muted);white-space:nowrap}
+.tplitems{margin:0;padding-left:20px;display:grid;gap:3px;font-size:14px}
+.tplitems li span:first-child{margin-right:8px}
 .hbar{height:6px;border-radius:3px;background:var(--accent);opacity:.7;margin-top:4px}
 
 @media (max-width:860px){
@@ -330,6 +352,19 @@ table.t tr:last-child td{border-bottom:0}
         </div>
       </div>
       <div class="panel res" id="profileRes"></div>
+    </div>
+    <div class="pgrid" style="margin-top:18px">
+      <div class="panel" id="wChart"></div>
+      <div class="panel">
+        <h2>Veriler</h2>
+        <p class="muted" style="margin:0 0 12px;font-size:14px">Her şey yalnızca bu tarayıcıda saklanır. Yedek almak ya da başka cihaza taşımak için dosyaya aktar.</p>
+        <div class="foot" style="justify-content:flex-start">
+          <button class="btn primary" id="expBtn">Dışa aktar (JSON)</button>
+          <button class="btn" id="impBtn">İçe aktar</button>
+          <input type="file" id="impFile" accept="application/json,.json" hidden>
+        </div>
+        <div id="dataMsg" class="muted" style="font-size:13px;margin-top:10px"></div>
+      </div>
     </div>
   </section>
 </div>
@@ -723,7 +758,7 @@ function renderDay(){
       <ul class="items">${list.length?list.map((e,i)=>`<li class="item"><div class="n">${esc(e.name)}${e.sample?'<span class="tag">örnek</span>':""}${e.est?'<span class="tag">tahmini</span>':""}<div class="por">${esc(e.por)}</div></div>
         <div class="k">${fmt(e.k)} kcal</div><button class="del" data-del="${m}:${i}" aria-label="Sil">×</button>
         <div class="m"><span style="color:var(--pro)">P ${fmt(e.p,1)}</span><span style="color:var(--carb)">K ${fmt(e.c,1)}</span><span style="color:var(--fat)">Y ${fmt(e.f,1)}</span><span style="color:var(--fib)">Lif ${fmt(e.fib,1)}</span></div></li>`).join(""):`<li class="empty">Henüz bir şey yok.</li>`}</ul></div>`}).join("");
-  const anySample=Object.values(S.days).some(d=>(d.wo||[]).some(w=>w.sample)||MEALS.some(([m])=>d.meals[m].some(e=>e.sample)));
+  const anySample=Object.values(S.days).some(d=>d.ws||(d.wo||[]).some(w=>w.sample)||MEALS.some(([m])=>d.meals[m].some(e=>e.sample)));
   $("#sampleBanner").hidden=!anySample&&!S.sample;
 }
 function allEntries(onlySample){const out=[];for(const [m] of MEALS)for(const e of day().meals[m])if(!onlySample||e.sample)out.push(e);return out}
@@ -764,7 +799,7 @@ function renderProfile(){
     ${C.floored?`<div class="warnbox">Seçtiğin hedef ${fmt(C.floor)} kcal'in altına düşüyordu; güvenli alt sınıra çekildi.</div>`:""}
     <div class="muted" style="font-size:12.5px">Formül tahminleri ±%3–4 yağ oranı sapabilir. Ölçüleri her hafta aynı saatte alırsan eğilim daha güvenilir olur.</div>`;
 }
-function render(){renderDate();renderDay();renderProfile();renderSpor();save()}
+function render(){renderDate();renderDay();renderProfile();renderSpor();renderWeight();save()}
 
 /* ---------- olaylar ---------- */
 function showTab(t){for(const x of ["gun","spor","profil"]){$("#tab-"+x).setAttribute("aria-selected",t===x);$("#view-"+x).hidden=t!==x}
@@ -772,9 +807,9 @@ function showTab(t){for(const x of ["gun","spor","profil"]){$("#tab-"+x).setAttr
 $("#tab-gun").onclick=()=>showTab("gun");$("#tab-spor").onclick=()=>showTab("spor");$("#tab-profil").onclick=()=>showTab("profil");
 const shift=n=>{const d=new Date(cur+"T12:00:00");d.setDate(d.getDate()+n);const s=ymd(d);if(s<=TODAY){cur=s;render()}};
 $("#prev").onclick=()=>shift(-1);$("#next").onclick=()=>shift(1);
-$("#clearSample").onclick=()=>{for(const d in S.days){for(const [m] of MEALS)S.days[d].meals[m]=S.days[d].meals[m].filter(e=>!e.sample);if(S.days[d].wo)S.days[d].wo=S.days[d].wo.filter(e=>!e.sample)}S.sample=false;render()};
+$("#clearSample").onclick=()=>{for(const d in S.days){for(const [m] of MEALS)S.days[d].meals[m]=S.days[d].meals[m].filter(e=>!e.sample);if(S.days[d].wo)S.days[d].wo=S.days[d].wo.filter(e=>!e.sample);if(S.days[d].ws){S.days[d].w=null;delete S.days[d].ws}}S.sample=false;render()};
 $("#exKcal").oninput=e=>{day().ex=Math.max(0,+e.target.value||0);render()};
-$("#dayWeight").onchange=e=>{const v=+e.target.value;day().w=v>=30?v:null;if(v>=30&&cur===TODAY)S.profile.weight=v;render()};
+$("#dayWeight").onchange=e=>{const v=+e.target.value;day().w=v>=30?v:null;delete day().ws;if(v>=30&&cur===TODAY)S.profile.weight=v;render()};
 $("#meals").onclick=e=>{const a=e.target.closest("[data-add]"),d=e.target.closest("[data-del]");
   if(a)openSheet(a.dataset.add);
   if(d){const [m,i]=d.dataset.del.split(":");day().meals[m].splice(+i,1);render()}};
@@ -877,6 +912,7 @@ Göğüs|Dumbbell fly|s|4
 Göğüs|Cable crossover|s|4
 Göğüs|Chest press makinesi|s|4
 Göğüs|Pec deck|s|4
+Göğüs|Smith machine bench press|s|5
 Göğüs|Dips|bw|5
 Göğüs|Şınav|bw|4
 Göğüs|Eğimli şınav|bw|4
@@ -892,6 +928,9 @@ Sırt|Pullover|s|4
 Sırt|Face pull|s|4
 Sırt|Inverted row|bw|5
 Sırt|Hiperekstansiyon|bw|3.5
+Sırt|Seated row makinesi|s|4.5
+Sırt|Destekli barfiks makinesi|s|5
+Sırt|Back extension makinesi|s|3.5
 Bacak|Squat (halter)|s|6
 Bacak|Front squat|s|6
 Bacak|Goblet squat|s|5
@@ -906,6 +945,17 @@ Bacak|Leg extension|s|4
 Bacak|Leg curl|s|4
 Bacak|Calf raise|s|3.5
 Bacak|Hip abduction makinesi|s|3.5
+Bacak|Hip adduction makinesi|s|3.5
+Bacak|Smith machine squat|s|5.5
+Bacak|Seated leg curl|s|4
+Bacak|Seated calf raise|s|3.5
+Bacak|Glute kickback makinesi|s|4
+Bacak|Kablo glute kickback|s|4
+Bacak|Glute bridge|bw|3.5
+Bacak|Air squat|bw|5
+Bacak|Ters lunge|bw|4.5
+Bacak|Donkey kick|bw|3.5
+Bacak|Fire hydrant|bw|3.5
 Bacak|Pistol squat|bw|6
 Bacak|Wall sit|t|4
 Omuz|Overhead press (halter)|s|5
@@ -917,6 +967,8 @@ Omuz|Rear delt fly|s|3.5
 Omuz|Upright row|s|4
 Omuz|Shrug|s|3.5
 Omuz|Pike şınav|bw|4.5
+Omuz|Shoulder press makinesi|s|4.5
+Omuz|Kablo lateral raise|s|3.5
 Kol|Barbell curl|s|3.5
 Kol|Dumbbell curl|s|3.5
 Kol|Hammer curl|s|3.5
@@ -927,6 +979,7 @@ Kol|Skull crusher|s|3.5
 Kol|Overhead triceps extension|s|3.5
 Kol|Close-grip bench press|s|5
 Kol|Bench dips|bw|4
+Kol|Biceps curl makinesi|s|3.5
 Karın & core|Plank|t|3.8
 Karın & core|Side plank|t|3.8
 Karın & core|Hollow hold|t|3.8
@@ -939,6 +992,10 @@ Karın & core|Cable crunch|s|3.8
 Karın & core|Dead bug|bw|3
 Karın & core|Bicycle crunch|bw|3.8
 Karın & core|Pallof press|s|3.5
+Karın & core|Karın makinesi|s|3.8
+Karın & core|Torso rotation makinesi|s|3.5
+Karın & core|Bird dog|bw|3
+Karın & core|Superman|bw|3
 Fonksiyonel|Burpee|bw|8
 Fonksiyonel|Mountain climber|bw|8
 Fonksiyonel|Jumping jack|bw|7
@@ -952,6 +1009,7 @@ Fonksiyonel|Wall ball|s|7
 Fonksiyonel|Thruster|s|7
 Fonksiyonel|Power clean|s|6
 Fonksiyonel|Sled push|s|8
+Fonksiyonel|Medicine ball slam|s|7
 Fonksiyonel|Battle rope|c|8
 Fonksiyonel|İp atlama|c|11
 Kardiyo|Koşu (açık hava)|c|9.8
@@ -966,6 +1024,8 @@ Kardiyo|Tempolu yürüyüş|c|5
 Kardiyo|Eğimli yürüyüş (bant)|c|6.5
 Kardiyo|Bisiklet (yol)|c|7.5
 Kardiyo|Spinning|c|8.5
+Kardiyo|Ergometre bisiklet|c|6.8
+Kardiyo|Air bike|c|9
 Kardiyo|Eliptik|c|5
 Kardiyo|Kürek makinesi|c|7
 Kardiyo|Merdiven makinesi|c|9
@@ -1011,6 +1071,91 @@ const XCATS=[...new Set(EXS.map(e=>e.cat))];
 const exBy=n=>EXS.find(e=>e.name===n)||{name:n,cat:"",t:"s",met:5};
 const THINT={s:"kg × tekrar",bw:"tekrar · ek ağırlık isteğe bağlı",t:"saniye",c:"süre · mesafe",d:"set × mesafe"};
 const isRun=ex=>/Koşu|koşu|Fartlek/.test(ex.name)&&ex.t==="c";
+
+/* ---------- antrenman şablonları: program|ad|hareket*plan;… — plan: 3x10 (set×tekrar), 3x45s (sn), 4x30m (drill), 20dk veya 30dk/5km ---------- */
+const TPLR=`
+Başlangıç (makine)|İlk gün – tanışma|Tempolu yürüyüş*10dk;Chest press makinesi*2x15;Lat pulldown*2x15;Leg press*2x15;Karın makinesi*2x15;Esneme / mobilite*10dk
+Başlangıç (makine)|Tüm vücut A|Chest press makinesi*3x12;Lat pulldown*3x12;Leg press*3x12;Shoulder press makinesi*3x12;Seated row makinesi*3x12;Karın makinesi*3x15;Eliptik*10dk
+Başlangıç (makine)|Tüm vücut B|Pec deck*3x12;Seated cable row*3x12;Leg extension*3x12;Seated leg curl*3x12;Lateral raise*3x12;Back extension makinesi*3x15;Plank*3x30s
+Başlangıç (makine)|Tüm vücut C|Smith machine bench press*3x10;Destekli barfiks makinesi*3x10;Goblet squat*3x12;Hip adduction makinesi*3x15;Hip abduction makinesi*3x15;Biceps curl makinesi*3x12;Triceps pushdown*3x12;Ergometre bisiklet*10dk
+Başlangıç (makine)|Aktif yaşam (50+)|Tempolu yürüyüş*15dk;Leg press*2x15;Chest press makinesi*2x15;Seated row makinesi*2x15;Back extension makinesi*2x15;Esneme / mobilite*10dk
+Tüm vücut (serbest ağırlık)|Tüm vücut A|Squat (halter)*3x8;Bench press (halter)*3x8;Barbell row*3x8;Overhead press (halter)*2x10;Plank*3x45s
+Tüm vücut (serbest ağırlık)|Tüm vücut B|Deadlift*3x5;Eğimli dumbbell press*3x10;Lat pulldown*3x10;Bulgarian split squat*3x10;Face pull*3x15;Bacak kaldırma (asılı)*3x10
+Tüm vücut (serbest ağırlık)|Tüm vücut C|Front squat*3x8;Dumbbell press*3x10;Dumbbell row*3x10;Romanian deadlift*3x10;Arnold press*3x10;Ab wheel*3x10
+Push / Pull / Legs|Push A – göğüs ağırlıklı|Bench press (halter)*4x6;Eğimli dumbbell press*3x10;Shoulder press makinesi*3x10;Cable crossover*3x12;Lateral raise*4x15;Triceps pushdown*3x12;Overhead triceps extension*3x12
+Push / Pull / Legs|Push B – omuz ağırlıklı|Overhead press (halter)*4x6;Dumbbell press*3x10;Pec deck*3x12;Kablo lateral raise*4x15;Dips*3x10;Skull crusher*3x10
+Push / Pull / Legs|Pull A – sırt kalınlığı|Deadlift*3x5;Barfiks*4x8;Seated cable row*3x10;Face pull*3x15;Barbell curl*3x10;Hammer curl*3x12
+Push / Pull / Legs|Pull B – sırt genişliği|Barbell row*4x8;Lat pulldown*3x10;Dumbbell row*3x10;Rear delt fly*3x15;Preacher curl*3x10;Cable curl*3x12;Shrug*3x12
+Push / Pull / Legs|Legs A – squat günü|Squat (halter)*4x6;Romanian deadlift*3x8;Leg press*3x12;Leg curl*3x12;Calf raise*4x15;Cable crunch*3x15
+Push / Pull / Legs|Legs B – makine günü|Hack squat*4x8;Hip thrust*3x10;Yürüyen lunge*3x12;Leg extension*3x15;Seated leg curl*3x12;Seated calf raise*4x15;Bacak kaldırma (asılı)*3x12
+Üst / Alt|Üst A – güç|Bench press (halter)*4x6;Barbell row*4x6;Overhead press (halter)*3x8;Lat pulldown*3x10;Barbell curl*2x12;Triceps pushdown*2x12
+Üst / Alt|Alt A – güç|Squat (halter)*4x6;Romanian deadlift*3x8;Leg press*3x10;Leg curl*3x12;Calf raise*4x12;Plank*3x45s
+Üst / Alt|Üst B – hacim|Eğimli dumbbell press*4x10;Seated cable row*4x10;Dumbbell shoulder press*3x10;Chin-up*3x8;Lateral raise*3x15;Hammer curl*3x12;Overhead triceps extension*3x12
+Üst / Alt|Alt B – hacim|Deadlift*3x5;Front squat*3x8;Bulgarian split squat*3x10;Leg extension*3x15;Seated calf raise*3x15;Ab wheel*3x10
+Bölgesel split (5 gün)|Göğüs günü|Bench press (halter)*4x8;Eğimli bench press*3x10;Dumbbell fly*3x12;Cable crossover*3x12;Dips*3x10;Şınav*2x15
+Bölgesel split (5 gün)|Sırt günü|Deadlift*3x5;Barfiks*4x8;T-bar row*3x10;Lat pulldown*3x12;Seated cable row*3x12;Pullover*3x12;Hiperekstansiyon*3x15
+Bölgesel split (5 gün)|Omuz günü|Overhead press (halter)*4x8;Arnold press*3x10;Lateral raise*4x15;Front raise*3x12;Rear delt fly*3x15;Upright row*3x12;Shrug*3x15
+Bölgesel split (5 gün)|Bacak günü|Squat (halter)*4x8;Leg press*4x12;Romanian deadlift*3x10;Leg extension*3x15;Leg curl*3x15;Yürüyen lunge*3x12;Calf raise*4x15
+Bölgesel split (5 gün)|Kol günü|Barbell curl*4x10;Close-grip bench press*4x8;Preacher curl*3x12;Skull crusher*3x12;Hammer curl*3x12;Triceps pushdown*3x15;Cable curl*2x15
+Güç (5×5)|5×5 A|Squat (halter)*5x5;Bench press (halter)*5x5;Barbell row*5x5
+Güç (5×5)|5×5 B|Squat (halter)*5x5;Overhead press (halter)*5x5;Deadlift*1x5
+Güç (5×5)|Güç + yardımcı|Deadlift*5x3;Front squat*3x5;Close-grip bench press*3x6;Barfiks*3x6;Hiperekstansiyon*3x12
+Yağ yakım & devre|Makine devresi|Leg press*3x15;Chest press makinesi*3x15;Lat pulldown*3x15;Shoulder press makinesi*3x15;Seated row makinesi*3x15;Karın makinesi*3x20;Koşu bandı*15dk
+Yağ yakım & devre|Fonksiyonel devre|Kettlebell swing*4x15;Goblet squat*4x12;Şınav*4x12;Mountain climber*4x20;Burpee*4x10;Plank*3x40s
+Yağ yakım & devre|Metabolik tüm vücut|Thruster*4x10;Box jump*4x8;Dumbbell row*4x12;Wall ball*4x15;Jumping jack*3x40;Kürek makinesi*10dk
+Yağ yakım & devre|Kardiyo + karın|Eliptik*20dk;Crunch*3x20;Bicycle crunch*3x20;Russian twist*3x20;Plank*3x45s;Merdiven makinesi*10dk
+Yağ yakım & devre|Tabata tarzı (20 sn / 10 sn)|Jump squat*8x15;Mountain climber*8x20;Burpee*8x6;Jumping jack*8x20;Air bike*8dk
+Yağ yakım & devre|Bant interval|Tempolu yürüyüş*5dk;İnterval koşu*20dk;Eğimli yürüyüş (bant)*10dk
+Karın · bacak · kalça|KBK A – kalça|Hip thrust*4x12;Goblet squat*3x15;Hip abduction makinesi*3x20;Glute kickback makinesi*3x15;Leg curl*3x15;Crunch*3x20;Plank*3x40s
+Karın · bacak · kalça|KBK B – bacak|Romanian deadlift*3x12;Bulgarian split squat*3x10;Hip adduction makinesi*3x20;Step-up*3x12;Kablo glute kickback*3x15;Bacak kaldırma (yerde)*3x15;Side plank*3x30s
+Karın · bacak · kalça|KBK C – evde|Glute bridge*4x20;Air squat*4x20;Ters lunge*3x12;Donkey kick*3x20;Fire hydrant*3x15;Bicycle crunch*3x20;Dead bug*3x12
+Karın · bacak · kalça|KBK D – makine|Smith machine squat*4x12;Leg press*3x15;Hip abduction makinesi*3x20;Hip adduction makinesi*3x20;Seated leg curl*3x15;Karın makinesi*3x20;Torso rotation makinesi*3x15
+Sıkılaşma|Üst vücut sıkılaşma|Lat pulldown*3x15;Chest press makinesi*3x15;Seated row makinesi*3x15;Lateral raise*3x15;Triceps pushdown*3x15;Dumbbell curl*3x15;Eliptik*15dk
+Sıkılaşma|Tüm vücut sıkılaşma|Goblet squat*3x15;Şınav*3x10;Dumbbell row*3x12;Hip thrust*3x15;Dumbbell shoulder press*3x12;Russian twist*3x20;Spinning*15dk
+Sırt sağlığı|Sağlıklı sırt|Back extension makinesi*3x15;Seated row makinesi*3x12;Face pull*3x15;Bird dog*3x10;Dead bug*3x10;Side plank*3x30s;Esneme / mobilite*10dk
+Sırt sağlığı|Karın-sırt dengesi|Pallof press*3x12;Karın makinesi*3x15;Hiperekstansiyon*3x12;Superman*3x12;Plank*3x45s;Torso rotation makinesi*3x12
+Evde / vücut ağırlığı|Ev A – kuvvet|Şınav*4x12;Air squat*4x20;Inverted row*3x10;Ters lunge*3x12;Pike şınav*3x8;Plank*3x45s
+Evde / vücut ağırlığı|Ev B – kondisyon|Burpee*4x10;Jump squat*4x12;Eğimli şınav*3x15;Glute bridge*3x20;Mountain climber*3x30;Hollow hold*3x30s
+Evde / vücut ağırlığı|Ev C – karın|Crunch*3x20;Bicycle crunch*3x20;Russian twist*3x20;Bacak kaldırma (yerde)*3x15;Side plank*3x30s;Dead bug*3x12
+Evde / vücut ağırlığı|Barfiks barı ile|Barfiks*5x5;Chin-up*3x6;Dips*4x8;Pistol squat*3x5;Bacak kaldırma (asılı)*3x10;Hollow hold*3x30s
+Fonksiyonel|Fonksiyonel A|Kettlebell swing*5x15;Turkish get-up*3x3;Box jump*4x8;Wall ball*4x12;Farmer's walk*3x1;Battle rope*5dk
+Fonksiyonel|Fonksiyonel B|Power clean*5x3;Thruster*4x8;Barfiks*4x6;Medicine ball slam*4x12;Sled push*4x1;Kürek makinesi*8dk
+Fonksiyonel|Atletik güç|Box jump*5x5;Power clean*5x3;Bulgarian split squat*3x8;Medicine ball slam*3x10;Kettlebell swing*3x15;Sprint*6x40m
+Kardiyo|Eğimli yürüyüş|Eğimli yürüyüş (bant)*30dk
+Kardiyo|Kardiyo karma|Koşu bandı*10dk;Eliptik*10dk;Ergometre bisiklet*10dk;Kürek makinesi*10dk
+Kardiyo|Spinning|Spinning*45dk
+Kardiyo|Uzun bisiklet|Ergometre bisiklet*40dk;Esneme / mobilite*10dk
+Kardiyo|Kürek + merdiven|Kürek makinesi*15dk;Merdiven makinesi*15dk
+Koşu|Kolay koşu|Koşu (açık hava)*30dk/5km;Strides (açılma)*6x80m
+Koşu|Tempo koşu|A-skip*3x30m;B-skip*3x30m;Tempo koşu*25dk
+Koşu|İnterval|A-skip*3x30m;High knees*3x30m;İnterval koşu*30dk
+Koşu|Uzun koşu|Uzun koşu*60dk/10km
+Koşu|Koşu drilleri|A-skip*4x30m;B-skip*4x30m;High knees*4x30m;Butt kicks*4x30m;Karioka*4x30m;Bounding*4x30m;Strides (açılma)*6x80m
+Koşu|Hız günü|A-skip*3x30m;Çömelmiş start*6x20m;Uçan 30 m*5x30m;Tepe sprinti*8x60m
+Koşu|5 km'ye başlangıç|Yürüyüş*5dk;İnterval koşu*20dk;Yürüyüş*5dk
+Esneklik & toparlanma|Toparlanma günü|Yürüyüş*30dk;Foam roller*10dk;Esneme / mobilite*15dk
+Esneklik & toparlanma|Yoga|Yoga*45dk
+Esneklik & toparlanma|Pilates|Pilates*45dk
+Esneklik & toparlanma|Mobilite|Foam roller*10dk;Esneme / mobilite*20dk
+`;
+const TPLS=TPLR.trim().split("\n").map((l,i)=>{const [prog,name,items]=l.split("|");
+  return {id:"p"+i,prog,name,items:items.split(";").map(s=>{const [ex,spec]=s.split("*");return {ex,spec}})}});
+const TPROGS=[...new Set(TPLS.map(t=>t.prog))];
+function specText(it){const t=exBy(it.ex).t,m=it.spec.match(/^(\d+)x(\d+)(s|m)?$/);
+  if(m)return t==="t"?`${m[1]} × ${m[2]} sn`:t==="d"?`${m[1]} × ${m[2]} m`:`${m[1]} × ${m[2]}`;
+  return it.spec.replace("dk"," dk").replace("/"," · ").replace("km"," km")}
+/* şablon satırını antrenman kaydına çevirir; ağırlıklar son seanstan, yoksa w:"" */
+function tplEntry(it){
+  const ex=exBy(it.ex),ls=lastSession(ex.name),e={ex:ex.name,t:ex.t,note:""};
+  const m=it.spec.match(/^(\d+)x(\d+)(s|m)?$/),c=it.spec.match(/^(\d+)dk(?:\/([\d.]+)km)?$/);
+  if(ex.t==="s"||ex.t==="bw"){const n=m?+m[1]:3,r=m?+m[2]:10,lw=ls&&ls.w.sets||[];
+    e.sets=Array.from({length:n},(_,i)=>({w:(lw[i]||lw[lw.length-1]||{}).w??(ex.t==="bw"?0:""),r}))}
+  else if(ex.t==="t")e.sets=Array.from({length:m?+m[1]:3},()=>({s:m?+m[2]:30}));
+  else if(ex.t==="c"){e.dur=c?+c[1]:20;if(c&&c[2])e.dist=+c[2]}
+  else{e.n=m?+m[1]:4;e.dist=m?+m[2]:30}
+  return e;
+}
+const needsWeight=e=>e.t==="s"&&e.sets.some(s=>s.w===""||s.w==null);
 
 function woDur(w){
   if(+w.dur)return +w.dur;
@@ -1060,7 +1205,7 @@ function weekStats(mon){
 const shortDate=ds=>new Date(ds+"T12:00:00").toLocaleDateString("tr-TR",{day:"numeric",month:"short"});
 
 function niceStep(x){const p=10**Math.floor(Math.log10(x||1));const f=x/p;return (f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*p}
-function lineChart(pts,unit,dec=1){
+function lineChart(pts,unit,dec=1,label="İlerleme grafiği"){
   const W=560,H=210,L=46,R=18,T=18,B=30;
   const vs=pts.map(p=>p.v);let lo=Math.min(...vs),hi=Math.max(...vs);if(lo===hi){lo=lo*0.9;hi=hi*1.1||1}
   const step=niceStep((hi-lo)/3);lo=Math.floor(lo/step)*step;hi=Math.ceil(hi/step)*step;if(hi===lo)hi=lo+step;
@@ -1074,16 +1219,16 @@ function lineChart(pts,unit,dec=1){
   const xl=idx.map(i=>`<text x="${X(pts[i])}" y="${H-8}" text-anchor="${pts.length===1?"middle":i===0?"start":i===pts.length-1?"end":"middle"}">${shortDate(pts[i].d)}</text>`).join("");
   const last=pts[pts.length-1];
   const dots=pts.map((p,i)=>`<circle cx="${X(p)}" cy="${Y(p.v)}" r="${i===pts.length-1?5:3}" fill="${i===pts.length-1?"var(--accent)":"var(--surface)"}" stroke="var(--accent)" stroke-width="2"/>`).join("");
-  return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="İlerleme grafiği">${g}${area}<path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>${dots}
+  return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}">${g}${area}<path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>${dots}
     <text x="${Math.min(X(last),W-R-4)}" y="${Math.max(Y(last.v)-12,12)}" text-anchor="end" style="fill:var(--ink);font-weight:500">${fmt(last.v,dec)} ${unit}</text>${xl}</svg></div>`;
 }
 
-let X={q:"",cat:"",ex:null,sets:[],dur:"",dist:"",n:"",note:""};
+let X={q:"",cat:"",ex:null,sets:[],dur:"",dist:"",n:"",note:"",view:"ex",tq:"",tprog:"",tsel:null,planIx:null};
 let pSel=null;
 function lastSession(name){const ds=Object.keys(S.days).filter(d=>d<cur||(d===cur)).sort().reverse();
   for(const d of ds){const w=(S.days[d].wo||[]).filter(w=>w.ex===name);if(w.length)return {d,w:w[w.length-1]}}return null}
 function pickEx(ex){
-  X={...X,ex,note:"",dur:"",dist:"",n:""};
+  X={...X,ex,note:"",dur:"",dist:"",n:"",planIx:null};
   const ls=lastSession(ex.name);
   if(ex.t==="s"||ex.t==="bw")X.sets=ls&&ls.w.sets?ls.w.sets.map(s=>({w:s.w,r:s.r})):[{w:"",r:""},{w:"",r:""},{w:"",r:""}];
   else if(ex.t==="t")X.sets=ls&&ls.w.sets?ls.w.sets.map(s=>({s:s.s})):[{s:30},{s:30},{s:30}];
@@ -1098,12 +1243,54 @@ function draftEntry(){const e={ex:X.ex.name,t:X.ex.t,note:X.note.trim()};
 function drawWoAdd(){
   const B=$("#woAdd");
   if(!X.ex){
-    const q=X.q.toLocaleLowerCase("tr");
-    const res=EXS.filter(e=>(!X.cat||e.cat===X.cat)&&(!q||e.name.toLocaleLowerCase("tr").includes(q)));
-    B.innerHTML=`<h2>Hareket ekle</h2><div style="display:grid;gap:12px">
-      <input class="inp" id="xq" type="search" placeholder="Ara: squat, A-skip, yüzme… (${EXS.length} hareket)" value="${esc(X.q)}" autocomplete="off">
-      <div class="chips"><button class="chip" data-xc="" aria-pressed="${!X.cat}">Tümü</button>${XCATS.map(c=>`<button class="chip" data-xc="${esc(c)}" aria-pressed="${X.cat===c}">${esc(c)}</button>`).join("")}</div>
-      <ul class="results">${res.length?res.map(e=>`<li><button data-x="${e.id}"><span>${esc(e.name)}</span><span class="meta">${esc(e.cat)} · ${THINT[e.t]}</span></button></li>`).join(""):`<li class="empty">Bulunamadı.</li>`}</ul></div>`;
+    const D=day(),PL=D.plan;
+    const plan=PL?`<div class="plan"><div class="mhead"><div><div class="xtype">Plan · ${esc(PL.prog)}</div><h3>${esc(PL.name)}</h3></div>
+        <span class="mtot num">${PL.items.filter(i=>i.done).length} / ${PL.items.length} tamam</span></div>
+      <ul class="planlist">${PL.items.map((it,i)=>`<li><button data-pi="${i}" ${it.done?'aria-pressed="true"':""}><span class="ck">${it.done?"✓":i+1}</span><span>${esc(it.ex)}</span><span class="meta">${esc(specText(it))}</span></button></li>`).join("")}</ul>
+      <div class="foot" style="justify-content:space-between"><button class="btn sm ghost" id="planEnd">Planı kapat</button>${PL.items.some(i=>!i.done)?`<button class="btn sm primary" id="planAll">Kalanları hızlı ekle</button>`:""}</div>
+      <div class="muted" id="planMsg" style="font-size:12.5px">Bir harekete tıkla, set ve tekrarlar plandan, ağırlıklar son seansından dolar.</div></div>`:"";
+    const view=`<div class="seg" id="xView" style="max-width:320px"><button data-v="ex" aria-pressed="${X.view!=="tpl"}">Hareketler</button><button data-v="tpl" aria-pressed="${X.view==="tpl"}">Şablonlar (${TPLS.length})</button></div>`;
+    let body;
+    if(X.view==="tpl"){
+      const q=X.tq.toLocaleLowerCase("tr");
+      const res=TPLS.filter(t=>(!X.tprog||t.prog===X.tprog)&&(!q||(t.name+" "+t.prog+" "+t.items.map(i=>i.ex).join(" ")).toLocaleLowerCase("tr").includes(q)));
+      const T=TPLS.find(t=>t.id===X.tsel);
+      let det="";
+      if(T){const es=T.items.map(tplEntry),min=es.reduce((a,e)=>a+woDur(e),0),kc=es.reduce((a,e)=>a+woKcal(e,cur),0);
+        det=`<div class="preview" style="grid-template-columns:1fr"><div><div class="xtype">${esc(T.prog)}</div><h3 style="margin:2px 0 6px">${esc(T.name)}</h3>
+          <ol class="tplitems">${T.items.map((it,i)=>{const e=es[i];const w=e.t==="s"&&!needsWeight(e)?` · son: ${fmt(+e.sets[0].w,1)} kg`:"";return `<li><span>${esc(it.ex)}</span><span class="meta">${esc(specText(it))}${w}</span></li>`}).join("")}</ol>
+          <div class="g" style="margin-top:6px">≈ ${fmt(min)} dk · ≈ ${fmt(kc)} kcal</div></div>
+          <div class="foot"><button class="btn sm" id="tAll">Hepsini hemen ekle</button><button class="btn sm primary" id="tPlan">Plan olarak başlat</button></div></div>`}
+      body=`<input class="inp" id="tq" type="search" placeholder="Ara: push, kalça, makine, koşu…" value="${esc(X.tq)}" autocomplete="off">
+        <div class="chips"><button class="chip" data-tp="" aria-pressed="${!X.tprog}">Tümü</button>${TPROGS.map(p=>`<button class="chip" data-tp="${esc(p)}" aria-pressed="${X.tprog===p}">${esc(p)}</button>`).join("")}</div>
+        <ul class="results">${res.length?res.map(t=>`<li><button data-t="${t.id}" aria-pressed="${t.id===X.tsel}"><span>${esc(t.name)}</span><span class="meta">${esc(t.prog)} · ${t.items.length} hareket</span></button></li>`).join(""):`<li class="empty">Bulunamadı.</li>`}</ul>${det}`;
+    }else{
+      const q=X.q.toLocaleLowerCase("tr");
+      const res=EXS.filter(e=>(!X.cat||e.cat===X.cat)&&(!q||e.name.toLocaleLowerCase("tr").includes(q)));
+      body=`<input class="inp" id="xq" type="search" placeholder="Ara: squat, A-skip, yüzme… (${EXS.length} hareket)" value="${esc(X.q)}" autocomplete="off">
+        <div class="chips"><button class="chip" data-xc="" aria-pressed="${!X.cat}">Tümü</button>${XCATS.map(c=>`<button class="chip" data-xc="${esc(c)}" aria-pressed="${X.cat===c}">${esc(c)}</button>`).join("")}</div>
+        <ul class="results">${res.length?res.map(e=>`<li><button data-x="${e.id}"><span>${esc(e.name)}</span><span class="meta">${esc(e.cat)} · ${THINT[e.t]}</span></button></li>`).join(""):`<li class="empty">Bulunamadı.</li>`}</ul>`;
+    }
+    B.innerHTML=`<h2>Hareket ekle</h2><div style="display:grid;gap:12px">${plan}${view}${body}</div>`;
+    $("#xView").onclick=e=>{const b=e.target.closest("button");if(b){X.view=b.dataset.v;drawWoAdd()}};
+    if(PL){
+      B.querySelectorAll("[data-pi]").forEach(b=>b.onclick=()=>{const i=+b.dataset.pi,it=PL.items[i];pickEx(exBy(it.ex));const e=tplEntry(it);
+        if(e.sets)X.sets=e.sets.map(s=>({...s}));if(e.dur)X.dur=e.dur;if(e.dist)X.dist=e.dist;if(e.n)X.n=e.n;X.planIx=i;drawWoAdd()});
+      $("#planEnd").onclick=()=>{delete D.plan;render()};
+      const pa=$("#planAll");if(pa)pa.onclick=()=>{let skip=0;PL.items.forEach((it,i)=>{if(it.done)return;const e=tplEntry(it);if(needsWeight(e)){skip++;return}
+          e.id=Date.now()+i;e.note=PL.name;D.wo.push(e);it.done=true});render();
+        if(skip){const m=$("#planMsg");if(m){m.style.color="var(--warn)";m.textContent=`${skip} hareketin önceki ağırlığı yok. Onlara tıklayıp kilo gir.`}}};
+    }
+    if(X.view==="tpl"){
+      const qi=$("#tq");qi.oninput=e=>{X.tq=e.target.value;const p=e.target.selectionStart;drawWoAdd();const n=$("#tq");n.focus();n.setSelectionRange(p,p)};
+      B.querySelectorAll("[data-tp]").forEach(b=>b.onclick=()=>{X.tprog=b.dataset.tp;drawWoAdd()});
+      B.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{X.tsel=X.tsel===b.dataset.t?null:b.dataset.t;drawWoAdd()});
+      const T=TPLS.find(t=>t.id===X.tsel);
+      if(T){const start=()=>{D.plan={name:T.name,prog:T.prog,items:T.items.map(i=>({...i,done:false}))};X.tsel=null};
+        $("#tPlan").onclick=()=>{start();X.view="ex";render()};
+        $("#tAll").onclick=()=>{start();X.view="ex";render();const pa=$("#planAll");if(pa)pa.click()};}
+      return;
+    }
     const qi=$("#xq");qi.oninput=e=>{X.q=e.target.value;const p=e.target.selectionStart;drawWoAdd();const n=$("#xq");n.focus();n.setSelectionRange(p,p)};
     B.querySelectorAll("[data-xc]").forEach(b=>b.onclick=()=>{X.cat=b.dataset.xc;drawWoAdd()});
     B.querySelectorAll("[data-x]").forEach(b=>b.onclick=()=>{pickEx(EXS.find(e=>e.id===b.dataset.x));drawWoAdd()});
@@ -1145,10 +1332,12 @@ function drawWoAdd(){
   const ab=$("#addSet");if(ab)ab.onclick=()=>{const l=X.sets[X.sets.length-1];X.sets.push(l?{...l}:(t==="t"?{s:30}:{w:"",r:""}));drawWoAdd()};
   for(const [id,k] of [["#xdur","dur"],["#xdist","dist"],["#xn","n"]]){const el=$(id);if(el)el.oninput=()=>{X[k]=el.value;upd()}}
   $("#xnote").oninput=e=>X.note=e.target.value;
-  $("#xBack").onclick=()=>{X.ex=null;drawWoAdd()};
+  $("#xBack").onclick=()=>{X.ex=null;X.planIx=null;drawWoAdd()};
   $("#xAdd").onclick=()=>{const e=draftEntry();
     if((e.sets&&!e.sets.length)||(t==="c"&&!e.dur)||(t==="d"&&!e.n)){$("#xPrev").insertAdjacentHTML("beforeend",`<div class="g" style="color:var(--bad)">${t==="c"?"Süreyi gir.":"En az bir set için tekrar ya da süre gir."}</div>`);return}
-    e.id=Date.now();day().wo.push(e);pSel=e.ex;X.ex=null;render()};
+    const D=day();e.id=Date.now();D.wo.push(e);pSel=e.ex;
+    if(D.plan){const it=X.planIx!=null?D.plan.items[X.planIx]:D.plan.items.find(i=>!i.done&&i.ex===e.ex);if(it)it.done=true}
+    X.ex=null;X.planIx=null;render()};
 }
 
 function renderSpor(){
@@ -1215,6 +1404,51 @@ function renderSpor(){
       <td class="n">${fmt(r.kcal)}<div class="hbar" style="width:${r.kcal/maxK*100}%;margin-left:auto"></div></td></tr>`).join("")}</tbody></table>`;
 }
 
+/* ---------- kilo eğrisi ---------- */
+let wRange=90;
+function renderWeight(){
+  const P=$("#wChart");
+  const from=wRange?addDays(TODAY,-wRange):"0000";
+  const pts=Object.keys(S.days).filter(d=>S.days[d].w&&d>=from).sort().map(d=>({d,v:+S.days[d].w}));
+  const chips=`<div class="chips">${[[30,"30 gün"],[90,"90 gün"],[365,"1 yıl"],[0,"Tümü"]].map(([v,l])=>`<button class="chip" data-wr="${v}" aria-pressed="${v===wRange}">${l}</button>`).join("")}</div>`;
+  if(pts.length<2){P.innerHTML=`<div class="mhead"><h2 style="margin:0">Kilo eğrisi</h2>${chips}</div><p class="muted" style="margin:12px 0 0">Günlük ekranındaki <b>Bugünkü kilo</b> alanına en az iki farklı gün kilo girince eğri burada çizilir.</p>`}
+  else{
+    // doğrusal eğilim (kg / hafta)
+    const t=p=>new Date(p.d+"T12:00:00").getTime()/864e5, n=pts.length;
+    const mx=pts.reduce((a,p)=>a+t(p),0)/n, my=pts.reduce((a,p)=>a+p.v,0)/n;
+    const sxx=pts.reduce((a,p)=>a+(t(p)-mx)**2,0), slope=sxx?pts.reduce((a,p)=>a+(t(p)-mx)*(p.v-my),0)/sxx*7:0;
+    const first=pts[0].v,last=pts[n-1].v,ch=last-first;
+    const exp=(+S.profile.goal)*7/7700;
+    P.innerHTML=`<div class="mhead"><h2 style="margin:0">Kilo eğrisi</h2>${chips}</div>
+      <div class="stats3" style="margin-top:12px">
+        <div><div class="lbl">Son tartı</div><div class="v num">${fmt(last,1)} <small class="muted" style="font-size:13px">kg</small></div><span class="delta muted">${shortDate(pts[n-1].d)}</span></div>
+        <div><div class="lbl">Değişim</div><div class="v num">${ch>0?"+":ch<0?"−":""}${fmt(Math.abs(ch),1)}</div><span class="delta muted">${shortDate(pts[0].d)}'den beri</span></div>
+        <div><div class="lbl">Haftalık eğilim</div><div class="v num">${slope>0?"+":slope<0?"−":""}${fmt(Math.abs(slope),2)}</div><span class="delta muted">Hedefe göre ${exp>0?"+":exp<0?"−":""}${fmt(Math.abs(exp),2)} kg</span></div>
+      </div>${lineChart(pts,"kg",1,"Kilo eğrisi grafiği")}`;
+  }
+  P.querySelectorAll("[data-wr]").forEach(b=>b.onclick=()=>{wRange=+b.dataset.wr;renderWeight()});
+}
+
+/* ---------- dışa / içe aktarma ---------- */
+$("#expBtn").onclick=()=>{
+  const blob=new Blob([JSON.stringify(S,null,1)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`kalori-defteri-${TODAY}.json`;
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  $("#dataMsg").textContent=`${Object.keys(S.days).length} günlük kayıt dosyaya yazıldı.`;
+};
+$("#impBtn").onclick=()=>$("#impFile").click();
+$("#impFile").onchange=async e=>{
+  const f=e.target.files[0];e.target.value="";if(!f)return;
+  const M=$("#dataMsg");
+  try{
+    const d=JSON.parse(await f.text());
+    if(!d||typeof d!=="object"||!d.profile||!d.days||typeof d.days!=="object")throw new Error("format");
+    if(!confirm(`${Object.keys(d.days).length} günlük kayıt içe aktarılacak ve bu tarayıcıdaki mevcut verilerin yerini alacak. Devam edilsin mi?`))return;
+    for(const k in d.days){const D=d.days[k];D.meals=D.meals||{};for(const [m] of MEALS)D.meals[m]=D.meals[m]||[];D.wo=D.wo||[]}
+    S=d;S.v=2;render();M.style.color="var(--good)";M.textContent="Veriler içe aktarıldı.";
+  }catch(err){M.style.color="var(--bad)";M.textContent="Dosya okunamadı. Bu uygulamadan dışa aktarılmış bir JSON dosyası seç."}
+};
+
 /* örnek antrenman geçmişi (son 4 hafta) */
 function sampleWorkouts(){
   const base=new Date(TODAY+"T12:00:00");
@@ -1230,9 +1464,11 @@ function sampleWorkouts(){
       L.push({ex:"A-skip",t:"d",n:4,dist:30},{ex:"Strides (açılma)",t:"d",n:6,dist:80});}
     if(dow===0)L.push({ex:"Barfiks",t:"bw",sets:[{w:0,r:5+wk},{w:0,r:4+wk},{w:0,r:4+wk}]});
     if(L.length){const D=day(k);D.wo.push(...L.map((x,i)=>({...x,id:k+i,sample:true})))}
+    if(back&&back%2===0){const D=day(k);D.w=Math.round((85.8-(27-back)*0.065+Math.sin(back*1.7)*0.35)*10)/10;D.ws=true}
   }
 }
 if(fresh||(S.v!==2&&S.sample)){sampleWorkouts()}
 S.v=2;
 render();
+if("serviceWorker" in navigator&&location.protocol.startsWith("http"))navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
