@@ -1,5 +1,5 @@
 // Kalori Defteri service worker: uygulama dosyaları önbellekte, internet varsa güncel sürüm alınır
-const CACHE = "kalori-v3";
+const CACHE = "kalori-v4";
 const SHELL = ["./", "./index.html", "./kalori.html", "./manifest.json", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-180.png"];
 
 self.addEventListener("install", e => {
