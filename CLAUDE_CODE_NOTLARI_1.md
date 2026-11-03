@@ -12,7 +12,11 @@ Tek dosyalık web uygulaması: `kalori.html` (HTML + CSS + vanilla JS, kütüpha
 - **Spor:** `EXR` sabiti: `kategori|ad|tür|MET`. Türler: `s` kg×tekrar, `bw` vücut ağırlığı, `t` süreli tutuş, `c` kardiyo (dk, km), `d` drill (set × m). Kalori = MET × kilo × saat (koşuda MET hızdan hesaplanır). Son seanstan otomatik doldurma, seans farkı, ilerleme grafiği (SVG), tahmini 1TM (Epley), haftalık özet + son 6 hafta tablosu. Spor kalorisi günlük ekrana otomatik eklenir.
 
 - **Şablonlar:** `TPLR` sabiti: `program|ad|hareket*plan;...` (plan: `3x10`, `3x45s`, `4x30m`, `20dk`, `30dk/5km`). 63 şablon, 14 program. Spor › Hareket ekle › Şablonlar: "Plan olarak başlat" günün `plan` alanına yazar (hareketlere tek tek tıklanır, ağırlık son seanstan dolar); "Hepsini hemen ekle" önceki ağırlığı bilinenleri doğrudan ekler.
-- **Kilo eğrisi:** Profil sekmesi, `days[*].w` değerlerinden; 30/90/365 gün/tümü, doğrusal haftalık eğilim, hedefe göre beklenen değişim.
+- **Antrenman düzenleme (✎), "Şablon olarak kaydet"** (`S.tpl`, program adı "Kendi şablonlarım"), **dinlenme sayacı** (`S.rest` sn, sesli + titreşim).
+- **Öğün ekleme:** son / sık yenenler (yeni kayıtlarda `pl`, `amt` saklanır), "Yeni yemek" sekmesi → `S.foods` (100 g değerleri, "Kendi yemeklerim").
+- **Su:** `days[*].water` bardak (250 ml), hedef kilo × 35 ml + antrenman dk × 10 ml.
+- **Rapor sekmesi:** haftalık özet (‹ › hafta değiştirir), günlük kalori çubukları, gün gün tablo. Boş günleri `S.days`'e yazmadan okur (`dayInfo`).
+- **Vücut değişimi:** Profil sekmesi; kilo (`days[*].w`), yağ oranı ve bel (`S.meas["YYYY-MM-DD"]={neck,waist,hip}`, ölçü alanları değişince bugüne yazılır).
 - **Veriler:** Profil sekmesinde JSON dışa/içe aktarma (içe aktarma mevcut verinin yerini alır).
 - **PWA:** `manifest.json`, `sw.js` (ağ öncelikli, çevrimdışıysa önbellek), `icons/`. Service worker yalnızca http(s) üzerinde kaydolur. Yayın: https://selbugtech.github.io/kalori-defteri/
 
@@ -26,6 +30,5 @@ Tek dosyalık web uygulaması: `kalori.html` (HTML + CSS + vanilla JS, kütüpha
 - Gün kaydında `plan:{name,prog,items:[{ex,spec,done}]}` ve örnek kilolar için `ws:true` olabilir.
 
 ## Olası sonraki adımlar
-- Kayıtlı antrenmanı düzenleme (şu an yalnızca silinebiliyor)
-- Kendi şablonunu oluşturma
+- Barkod okuma (Open Food Facts)
 - Cihazlar arası senkron için backend
