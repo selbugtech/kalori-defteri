@@ -14,6 +14,8 @@ Tek dosyalık web uygulaması: `kalori.html` (HTML + CSS + vanilla JS, kütüpha
 - **Şablonlar:** `TPLR` sabiti: `program|ad|hareket*plan;...` (plan: `3x10`, `3x45s`, `4x30m`, `20dk`, `30dk/5km`). 63 şablon, 14 program. Spor › Hareket ekle › Şablonlar: "Plan olarak başlat" günün `plan` alanına yazar (hareketlere tek tek tıklanır, ağırlık son seanstan dolar); "Hepsini hemen ekle" önceki ağırlığı bilinenleri doğrudan ekler.
 - **Antrenman düzenleme (✎), "Şablon olarak kaydet"** (`S.tpl`, program adı "Kendi şablonlarım"), **dinlenme sayacı** (`S.rest` sn, sesli + titreşim).
 - **Öğün ekleme:** son / sık yenenler (yeni kayıtlarda `pl`, `amt` saklanır), "Yeni yemek" sekmesi → `S.foods` (100 g değerleri, "Kendi yemeklerim").
+- **Hazır öğünler:** dolu öğünün altında "☆ Hazır öğün olarak kaydet" → `S.combos=[{id,name,items}]`; Listeden sekmesinin en üstünde tek dokunuşla eklenir. Boş öğünde "↺ Dünkü" önceki dolu günün aynı öğününü kopyalar (`prevMeal`).
+- **Barkod:** Listeden › 📷 Barkod. Android Chrome'da yerleşik `BarcodeDetector`, diğerlerinde unpkg'den `html5-qrcode@2.3.8` yüklenir; numara elle de yazılabilir. Ürün Open Food Facts API v2'den çekilir, "Yeni yemek" formu doldurulur; kaydedilen yemekte `code` saklanır ve sonraki okutmada doğrudan seçilir. Kamera yalnızca HTTPS'te (Pages) çalışır.
 - **Su:** `days[*].water` bardak (250 ml), hedef kilo × 35 ml + antrenman dk × 10 ml.
 - **Rapor sekmesi:** haftalık özet (‹ › hafta değiştirir), günlük kalori çubukları, gün gün tablo. Boş günleri `S.days`'e yazmadan okur (`dayInfo`).
 - **Vücut değişimi:** Profil sekmesi; kilo (`days[*].w`), yağ oranı ve bel (`S.meas["YYYY-MM-DD"]={neck,waist,hip}`, ölçü alanları değişince bugüne yazılır).
@@ -32,5 +34,4 @@ Tek dosyalık web uygulaması: `kalori.html` (HTML + CSS + vanilla JS, kütüpha
 - Gün kaydında `plan:{name,prog,items:[{ex,spec,done}]}` ve örnek kilolar için `ws:true` olabilir.
 
 ## Olası sonraki adımlar
-- Barkod okuma (Open Food Facts)
 - Cihazlar arası senkron için backend

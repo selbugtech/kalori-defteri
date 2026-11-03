@@ -214,6 +214,10 @@ table.t td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:to
 table.t td.n{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
 table.t th.n{text-align:right}
 table.t tr:last-child td{border-bottom:0}
+.qrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.scanbox{position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:4/3;max-height:46vh;width:100%}
+.scanbox video{width:100%;height:100%;object-fit:cover;display:block}
+.scanline{position:absolute;left:10%;right:10%;top:50%;height:2px;background:var(--bad);box-shadow:0 0 8px var(--bad);pointer-events:none;z-index:2}
 .toast{position:fixed;left:50%;transform:translateX(-50%);top:calc(14px + env(safe-area-inset-top,0px));z-index:30;max-width:calc(100vw - 32px);background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:10px;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.2)}
 .macts{display:flex;gap:6px;align-items:center}
 .items .mfoot{padding:4px 6px 0}
@@ -975,10 +979,59 @@ $("#sexSeg").onclick=e=>{const b=e.target.closest("button");if(b){S.profile.sex=
 /* ---------- öğün ekleme paneli ---------- */
 let sh={own:{name:"",k:"",p:"",c:"",f:"",fib:"",pl:"",g:""},meal:"kahvalti",mode:"list",q:"",cat:"",food:null,por:"",amt:1,ing:[],serv:4,eat:1,rname:"",gt:0,gp:4,gamt:1,gname:""};
 function openSheet(meal){sh.meal=meal;sh.food=null;$("#scrim").hidden=false;$("#shTitle").textContent=MEALS.find(m=>m[0]===meal)[1]+" öğününe ekle";drawSheet();setTimeout(()=>{const s=$("#q");s&&s.focus()},30)}
-function closeSheet(){$("#scrim").hidden=true;OPENM.add(sh.meal)}
+function closeSheet(){stopScan();if(sh.mode==="scan"){sh.mode="list";document.querySelectorAll("#modeTabs button").forEach(x=>x.setAttribute("aria-selected",x.dataset.m==="list"))}$("#scrim").hidden=true;OPENM.add(sh.meal)}
 $("#shClose").onclick=closeSheet;$("#scrim").onclick=e=>{if(e.target.id==="scrim")closeSheet()};
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#scrim").hidden)closeSheet()});
-function setMode(m){sh.mode=m;document.querySelectorAll("#modeTabs button").forEach(x=>x.setAttribute("aria-selected",x.dataset.m===m));drawSheet()}
+/* ---------- barkod: BarcodeDetector (Android Chrome), yoksa html5-qrcode; ürün bilgisi Open Food Facts ---------- */
+let scan=null;
+const scanMsg=(t,bad)=>{const m=$("#scanMsg");if(m){m.textContent=t;m.style.color=bad?"var(--bad)":""}};
+function stopScan(){if(!scan)return;const s=scan;scan=null;clearInterval(s.iv);
+  if(s.stream)s.stream.getTracks().forEach(t=>t.stop());if(s.h5){let p=Promise.resolve();try{if(!s.h5.getState||s.h5.getState()>=2)p=Promise.resolve(s.h5.stop())}catch(e){}p.catch(()=>{}).finally(()=>{try{s.h5.clear()}catch(e){}})}}
+function loadScript(src){return new Promise((ok,no)=>{if(document.querySelector(`script[src="${src}"]`))return ok();const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=no;document.head.appendChild(s)})}
+async function startScan(){
+  stopScan();const me=scan={};
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!isSecureContext){scanMsg("Kamera bu ortamda kullanılamıyor. Barkod numarasını elle yazabilirsin.",true);return}
+  const found=code=>{if(scan!==me)return;stopScan();try{navigator.vibrate&&navigator.vibrate(80)}catch(e){}lookupCode(code)};
+  try{
+    let det=null;
+    if("BarcodeDetector" in window){try{const f=await BarcodeDetector.getSupportedFormats();if(f.includes("ean_13"))det=new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e","code_128"].filter(x=>f.includes(x))})}catch(e){}}
+    if(det){
+      me.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});
+      if(scan!==me){me.stream.getTracks().forEach(t=>t.stop());return}
+      const v=$("#scanVid");v.srcObject=me.stream;await v.play();scanMsg("Barkodu çerçevenin ortasına getir.");
+      me.iv=setInterval(async()=>{if(scan!==me||v.readyState<2)return;try{const r=await det.detect(v);if(r.length)found(r[0].rawValue)}catch(e){}},250);
+    }else{
+      scanMsg("Tarayıcı hazırlanıyor…");
+      await loadScript("https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js");
+      if(scan!==me)return;
+      $("#scanVid").remove();
+      me.h5=new Html5Qrcode("scanBox",{verbose:false});
+      await me.h5.start({facingMode:"environment"},{fps:10,qrbox:(w,h)=>({width:Math.min(w*0.85,320),height:Math.min(h*0.5,140)})},t=>found(t),()=>{});
+      if(scan!==me){try{Promise.resolve(me.h5.stop()).catch(()=>{})}catch(e){}return}
+      scanMsg("Barkodu çerçevenin ortasına getir.");
+    }
+  }catch(e){if(scan===me){scanMsg(/Permission|NotAllowed/i.test(e&&(e.name||e)+"")?"Kamera izni verilmedi. Tarayıcı ayarlarından izin ver ya da numarayı elle yaz.":"Kamera açılamadı. Barkod numarasını elle yazabilirsin.",true);stopScan()}}
+}
+async function lookupCode(code){
+  const own=FOODS.find(f=>f.code===code);
+  if(own){sh.food=own;sh.por=own.por[0][0];sh.amt=1;sh.q="";sh.cat="";setMode("list");toast(`${own.name} listende vardı.`);return}
+  stopScan();scanMsg(`${code} aranıyor…`);
+  try{
+    const r=await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=product_name,product_name_tr,brands,nutriments,serving_quantity,quantity`);
+    const j=await r.json();const p=j&&j.status===1&&j.product;
+    if(sh.mode!=="scan"||$("#scrim").hidden)return;
+    const n=p&&p.nutriments||{},v=k=>n[k]!=null&&n[k]!==""?Math.round(+n[k]*10)/10:"";
+    let kcal=v("energy-kcal_100g");if(kcal===""&&n["energy_100g"]!=null)kcal=Math.round(+n["energy_100g"]/4.184);
+    if(!p||kcal===""){sh.own={name:p?(p.product_name_tr||p.product_name||""):"",k:"",p:"",c:"",f:"",fib:"",pl:"",g:"",code};
+      sh.scanMsg="";setMode("own");const m=$("#oMsg");if(m){m.style.color="var(--warn)";m.textContent=p?"Ürün bulundu ama besin değerleri eksik. Paketin üstünden 100 g değerlerini gir.":`${code} veritabanında yok. Paketin üstünden 100 g değerlerini gir; bir dahaki okutmada listende hazır olur.`}return}
+    const brand=(p.brands||"").split(",")[0].trim(),pname=(p.product_name_tr||p.product_name||"Ürün").trim();
+    const sq=+p.serving_quantity||0;
+    const bw=brand.split(/[\s-]/)[0].toLocaleLowerCase("tr");
+    sh.own={name:brand&&brand.length<=20&&!pname.toLocaleLowerCase("tr").includes(bw)?`${brand} ${pname}`:pname,k:kcal,p:v("proteins_100g"),c:v("carbohydrates_100g"),f:v("fat_100g"),fib:v("fiber_100g"),pl:sq?"porsiyon":"",g:sq?Math.round(sq):"",code};
+    sh.scanMsg="";setMode("own");const m=$("#oMsg");if(m){m.style.color="var(--good)";m.textContent="Open Food Facts'ten dolduruldu. Değerleri kontrol et, gerekirse düzelt ve kaydet."}
+  }catch(e){scanMsg("Ürün bilgisi alınamadı. İnternet bağlantını kontrol et ya da değerleri Yeni yemek sekmesinden elle gir.",true)}
+}
+function setMode(m){if(m!=="scan")stopScan();sh.mode=m;document.querySelectorAll("#modeTabs button").forEach(x=>x.setAttribute("aria-selected",x.dataset.m===m));drawSheet()}
 $("#modeTabs").onclick=e=>{const b=e.target.closest("button");if(b)setMode(b.dataset.m)};
 /* son ve sık yenenler (örnekler hariç) */
 function recentFoods(){
@@ -1011,7 +1064,7 @@ function drawSheet(){
     const CB=S.combos||[];
     const cbs=R?(CB.length?`<div class="fld"><span class="lbl">Hazır öğünlerin · tek dokunuşla hepsi eklenir</span><ul class="combos">${CB.map(c=>`<li><button class="cadd" data-cb="${c.id}"><span>${esc(c.name)}</span><span class="meta">${c.items.length} kalem · ${fmt(c.items.reduce((a,e)=>a+e.k,0))} kcal</span></button><button class="del" data-cbx="${c.id}" aria-label="${esc(c.name)} hazır öğününü sil">×</button></li>`).join("")}</ul></div>`
       :`<div class="muted" style="font-size:12.5px">İpucu: dolu bir öğünün altındaki <b>☆ Hazır öğün olarak kaydet</b> ile her gün yediğin menüyü kaydedersen burada tek dokunuşla eklenir.</div>`):"";
-    B.innerHTML=`<input class="inp" id="q" type="search" placeholder="Ara: pilav, yumurta, lahmacun…" value="${esc(sh.q)}" autocomplete="off">
+    B.innerHTML=`<div class="qrow"><input class="inp" id="q" type="search" placeholder="Ara: pilav, yumurta, lahmacun…" value="${esc(sh.q)}" autocomplete="off"><button class="btn" id="scanBtn" aria-label="Barkod okut">📷 Barkod</button></div>
       ${cbs}${R?rc(R.last,"Son yediklerin")+rc(R.freq,"En sık yediklerin"):""}
       <div class="chips"><button class="chip" data-cat="" aria-pressed="${!sh.cat}">Tümü</button>${CATS.map(c=>`<button class="chip" data-cat="${esc(c)}" aria-pressed="${sh.cat===c}">${esc(c)}</button>`).join("")}</div>
       <ul class="results">${res.length?res.map(f=>`<li><button data-f="${f.id}" aria-pressed="${sh.food&&sh.food.id===f.id}"><span>${esc(f.name)}</span><span class="meta">${f.k} kcal/100 g · ${esc(f.por[0][0])} ${f.por[0][1]} g</span></button></li>`).join(""):`<li class="empty">Bulunamadı. <b>Tahmini</b> sekmesinden yemek türüne göre ekleyebilirsin.</li>`}</ul>${det}`;
@@ -1021,6 +1074,7 @@ function drawSheet(){
     B.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{const r=R.map[b.dataset.r],f=FOODS.find(x=>x.name===r.e.name);
       if(f){sh.food=f;const ok=r.e.pl&&(r.e.pl==="g"||f.por.some(p=>p[0]===r.e.pl));sh.por=ok?r.e.pl:f.por[0][0];sh.amt=ok?r.e.amt:1;drawSheet();$("#amt").focus()}
       else{const {sample,...e}=r.e;day().meals[sh.meal].push({...e});closeSheet();render()}});
+    $("#scanBtn").onclick=()=>{sh.scanMsg="";setMode("scan")};
     B.querySelectorAll("[data-cb]").forEach(b=>b.onclick=()=>{const c=CB.find(x=>x.id===b.dataset.cb);if(!c)return;
       day().meals[sh.meal].push(...copyEntries(c.items));closeSheet();render();toast(`"${c.name}" eklendi: ${c.items.length} kalem.`)});
     B.querySelectorAll("[data-cbx]").forEach(b=>b.onclick=()=>{const c=CB.find(x=>x.id===b.dataset.cbx);if(!c||!confirm(`"${c.name}" hazır öğünü silinsin mi?`))return;
@@ -1062,11 +1116,23 @@ function drawSheet(){
     $("#eat").onchange=e=>{sh.eat=+e.target.value;drawSheet()};$("#mSel").onchange=e=>sh.meal=e.target.value;
     $("#addR").onclick=()=>{day().meals[sh.meal].push(entry);closeSheet();render()};
   }
+  else if(sh.mode==="scan"){
+    B.innerHTML=`<p class="muted" style="margin:0;font-size:14px">Ürünün barkodunu kameraya tut. Değerler <b>Open Food Facts</b> ortak veritabanından gelir; kaydetmeden önce paketle karşılaştır.</p>
+      <div class="scanbox" id="scanBox"><video id="scanVid" playsinline muted></video><div class="scanline"></div></div>
+      <div id="scanMsg" class="muted" style="font-size:13.5px">${esc(sh.scanMsg||"Kamera açılıyor…")}</div>
+      <div class="qrow"><input class="inp num" id="codeIn" type="text" inputmode="numeric" placeholder="Ya da barkod numarasını yaz" autocomplete="off"><button class="btn primary" id="codeGo">Ara</button></div>
+      <div class="foot"><button class="btn ghost" id="scanBack">Listeye dön</button></div>`;
+    $("#codeGo").onclick=()=>{const c=$("#codeIn").value.replace(/\D/g,"");if(c.length>=6)lookupCode(c);else scanMsg("Barkod en az 6 haneli olmalı.",true)};
+    $("#codeIn").onkeydown=e=>{if(e.key==="Enter")$("#codeGo").click()};
+    $("#scanBack").onclick=()=>setMode("list");
+    startScan();
+  }
   else if(sh.mode==="own"){
     const o=sh.own,r=x=>Math.round(x*10)/10,g=+o.g||100,fac=g/100;
     const e={name:o.name||"Yeni yemek",por:`1 ${o.pl||"porsiyon"} · ~${Math.round(g)} g`,k:Math.round((+o.k||0)*fac),p:r((+o.p||0)*fac),c:r((+o.c||0)*fac),f:r((+o.f||0)*fac),fib:r((+o.fib||0)*fac)};
     const fld=(id,lbl,v,ph="")=>`<div class="fld"><label for="o_${id}">${lbl}</label><input class="inp num" id="o_${id}" data-o="${id}" type="text" min="0" step="0.1" value="${esc(v??"")}" placeholder="${ph}" inputmode="decimal"></div>`;
     B.innerHTML=`<p class="muted" style="margin:0;font-size:14px">Listede olmayan bir ürünü paketin üstündeki <b>100 g</b> değerleriyle kaydet. "${OWNCAT}" kategorisinde kalıcı olarak listede durur.</p>
+      ${o.code?`<div class="muted num" style="font-size:12.5px">Barkod: ${esc(o.code)}</div>`:""}
       <div class="fld"><label for="o_name">Adı</label><input class="inp" id="o_name" data-o="name" value="${esc(o.name)}" placeholder="Örn. X marka protein yoğurt"></div>
       <div class="lbl">100 g başına</div>
       <div class="row">${fld("k","Kalori (kcal)",o.k)}${fld("p","Protein (g)",o.p)}${fld("c","Karbonhidrat (g)",o.c)}${fld("f","Yağ (g)",o.f)}${fld("fib","Lif (g)",o.fib,"0")}</div>
@@ -1079,7 +1145,7 @@ function drawSheet(){
     $("#saveFood").onclick=()=>{const name=(o.name||"").trim();
       if(!name||!(+o.k>=0)||o.k===""){$("#oMsg").style.color="var(--bad)";$("#oMsg").textContent="Ad ve kalori gerekli.";return}
       if(FOODS.some(f=>f.name.toLocaleLowerCase("tr")===name.toLocaleLowerCase("tr"))){$("#oMsg").style.color="var(--bad)";$("#oMsg").textContent="Bu adda bir yemek zaten var.";return}
-      const nf={id:"c"+Date.now(),name,k:+o.k||0,p:+o.p||0,c:+o.c||0,f:+o.f||0,fib:+o.fib||0,por:[[(o.pl||"porsiyon").trim(),+o.g||100]]};
+      const nf={id:"c"+Date.now(),name,k:+o.k||0,p:+o.p||0,c:+o.c||0,f:+o.f||0,fib:+o.fib||0,por:[[(o.pl||"porsiyon").trim(),+o.g||100]]};if(o.code)nf.code=o.code;
       S.foods=S.foods||[];S.foods.push(nf);rebuildFoods();save();
       sh.own={name:"",k:"",p:"",c:"",f:"",fib:"",pl:"",g:""};sh.food=FOODS.find(f=>f.id===nf.id);sh.por=nf.por[0][0];sh.amt=1;sh.q="";sh.cat="";setMode("list")};
   }
